@@ -5,18 +5,52 @@ on:
     branches: [main]
   workflow_dispatch:
 
-# izin yang dibutuhkan oleh actions/deploy-pages
 permissions:
-  contents: read
-  pages: write
+  contents: write # untuk memperbarui index.html di root (mode "deploy from branch")
+  pages: write # untuk deploy via GitHub Actions (opsional)
   id-token: write
 
-# biarkan satu deployment berjalan; jangan batalkan deployment yang sedang live
 concurrency:
   group: pages
   cancel-in-progress: false
 
 jobs:
+  # Commit hasil build ke index.html di root.
+  # Berguna saat GitHub Pages diset "Deploy from a branch: main /" — situs
+  # langsung menyajikan aplikasi tanpa perlu mengubah setting apa pun.
+  publish-html:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build app + generate index.html
+        run: npm run build:pages
+
+      - name: Commit index.html bila berubah
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- index.html; then
+            echo "index.html tidak berubah — tidak perlu commit."
+            exit 0
+          fi
+          git add index.html
+          git commit -m "chore(pages): rebuild index.html [skip ci]"
+          git push origin HEAD:main
+
+  # Build ulang lalu deploy lewat GitHub Actions (aktif hanya jika
+  # Settings → Pages → Source diset ke "GitHub Actions").
   build:
     runs-on: ubuntu-latest
     steps:

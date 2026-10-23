@@ -90,7 +90,7 @@ function FacadeElevation({ design, view }: { design: Design; view: 'front' | 'ba
   const faceCols = d.columns.filter((c) => (view === 'front' ? c.z > g.depth - 100 : c.z < 100));
   const mainColor = MATERIAL_COLOR[d.wallMaterial];
   const extColor = MATERIAL_COLOR[d.extension.material];
-  const extH = Math.min(d.extension.wallHeight, d.wallHeight);
+  const extH = g.canopy ? g.canopy.wallH : d.wallHeight;
   const mainX = R(g.mainX0, d.width);
   const door = d.door;
   const hasDoor = door.wall === view;
@@ -102,14 +102,43 @@ function FacadeElevation({ design, view }: { design: Design; view: 'front' | 'ba
       {Array.from({ length: Math.floor(d.width / 90) }, (_, i) => (
         <line key={i} x1={mainX + (i + 1) * 90} y1={Y(g.wallH)} x2={mainX + (i + 1) * 90} y2={0} stroke="#0f172a" strokeWidth={0.6} opacity={0.35} />
       ))}
-      {d.extension.enabled && g.leanTo && (
+      {d.extension.enabled && g.canopy && (
         <g>
           <rect x={R(0, g.ext)} y={Y(extH)} width={g.ext} height={extH} fill={extColor} stroke="#b91c1c" strokeWidth={2} />
           <rect x={R(0, g.ext)} y={Y(extH)} width={g.ext} height={extH} fill="url(#hatchNew)" opacity={0.18} />
-          <line x1={M(g.leanTo.xLow)} y1={Y(g.leanTo.yLow)} x2={M(g.leanTo.xHigh)} y2={Y(g.leanTo.yHigh)} stroke="#334155" strokeWidth={9} />
-          <line x1={M(g.leanTo.xLow)} y1={Y(g.leanTo.yLow)} x2={M(g.leanTo.xHigh)} y2={Y(g.leanTo.yHigh)} stroke="#94a3b8" strokeWidth={4} />
           <text x={M(g.ext / 2)} y={Y(extH / 2)} fontSize={fs - 4} fill="#7f1d1d" textAnchor="middle" fontWeight={700} transform={`rotate(-90 ${M(g.ext / 2)} ${Y(extH / 2)})`}>
             PERLUASAN {g.ext} cm
+          </text>
+          {/* ATAP DATAR: pita horizontal rata, menempel ke dinding utama */}
+          <rect
+            x={Math.min(M(g.canopy.x0), M(g.canopy.x1))}
+            y={Y(g.canopy.y)}
+            width={g.canopy.len}
+            height={14}
+            fill="#cbd5e1"
+            stroke="#334155"
+            strokeWidth={2.5}
+          />
+          <rect
+            x={Math.min(M(g.canopy.x0), M(g.canopy.x1))}
+            y={Y(g.canopy.y)}
+            width={g.canopy.len}
+            height={14}
+            fill="url(#roofHatch)"
+            opacity={0.6}
+          />
+          <text
+            x={M((g.canopy.x0 + g.canopy.x1) / 2)}
+            y={Y(g.canopy.y) + 14 + fs - 4}
+            fontSize={fs - 6}
+            fill="#1e293b"
+            textAnchor="middle"
+            fontWeight={700}
+            stroke="#ffffff"
+            strokeWidth={3}
+            paintOrder="stroke"
+          >
+            ATAP DATAR
           </text>
         </g>
       )}
@@ -151,7 +180,18 @@ function FacadeElevation({ design, view }: { design: Design; view: 'front' | 'ba
       <Dim x1={M(g.mainX1 + d.overhang)} y1={Y(g.eaveH)} x2={M(g.mainX1 + d.overhang)} y2={Y(g.ridgeH)} offset={sgn * (100 - d.overhang)} label={`${Math.round(g.ridgeH - g.eaveH)}`} fontSize={fs - 5} color="#475569" />
       <HDim xa={M(g.mainX1)} xb={M(g.mainX1 + d.overhang)} y={Y(g.eaveH)} offset={-65} label={`${d.overhang}`} fontSize={fs - 5} color="#475569" />
       {hasDoor && <Dim x1={doorX + door.width} y1={0} x2={doorX + door.width} y2={Y(door.height)} offset={25} label={`${door.height}`} fontSize={fs - 5} color="#7c2d12" />}
-      {d.extension.enabled && <Dim x1={M(0)} y1={0} x2={M(0)} y2={Y(extH)} offset={-sgn * (gap + 50)} label={`${extH}`} fontSize={fs - 3} color="#b45309" />}
+      {d.extension.enabled && <Dim x1={M(0)} y1={0} x2={M(0)} y2={Y(extH)} offset={-sgn * (gap + 50)} label={`${Math.round(extH)}`} fontSize={fs - 3} color="#b45309" />}
+      {g.canopy && (
+        <HDim
+          xa={M(g.canopy.x0)}
+          xb={M(g.canopy.x1)}
+          y={Y(g.canopy.y)}
+          offset={-38}
+          label={`tritisan ${Math.round(g.canopy.len - g.ext)}`}
+          fontSize={fs - 5}
+          color="#b45309"
+        />
+      )}
       {d.fence.visible && gap > 0 && <HDim xa={fenceX} xb={M(0)} y={0} offset={42} label={`${gap}`} fontSize={fs - 4} color="#334155" />}
       <text x={mainX + d.width / 2} y={Y(g.ridgeH + 60)} fontSize={fs - 3} textAnchor="middle" fill="#475569">
         Atap pelana, kemiringan ±{g.pitchDeg.toFixed(0)}° • rangka baja biru • penutup spandek
@@ -185,7 +225,7 @@ function SideElevation({ design, view }: { design: Design; view: 'left' | 'right
   const R = (z: number, w: number) => (mir ? D - z - w : z);
   const vb = { x: -200, y: Y(g.ridgeH + 90), w: D + 420, h: g.ridgeH + 90 + 110 };
   const isExtSide = view === 'left' && d.extension.enabled;
-  const wallH = isExtSide ? Math.min(d.extension.wallHeight, d.wallHeight) : g.wallH;
+  const wallH = isExtSide && g.canopy ? g.canopy.wallH : g.wallH;
   const color = isExtSide ? MATERIAL_COLOR[d.extension.material] : MATERIAL_COLOR[d.wallMaterial];
   const cols = d.columns.filter((c) => (view === 'left' ? c.x < 100 : c.x > g.totalWidth - 100));
   const showFence = view === 'left' && d.fence.visible;
@@ -199,9 +239,13 @@ function SideElevation({ design, view }: { design: Design; view: 'left' | 'right
       subtitle={mir ? 'kiri = depan, kanan = belakang' : 'kiri = belakang, kanan = depan'}
       vb={vb}
     >
-      <rect x={roofX} y={Y(g.ridgeH)} width={g.roofZ1 - g.roofZ0} height={g.ridgeH - g.eaveH} fill="#cbd5e1" stroke="#334155" strokeWidth={2} />
-      <rect x={roofX} y={Y(g.ridgeH)} width={g.roofZ1 - g.roofZ0} height={g.ridgeH - g.eaveH} fill="url(#roofHatch)" opacity={0.6} />
-      <line x1={roofX} y1={Y(g.ridgeH)} x2={roofX + (g.roofZ1 - g.roofZ0)} y2={Y(g.ridgeH)} stroke="#0f172a" strokeWidth={4} />
+      {!isExtSide && (
+        <>
+          <rect x={roofX} y={Y(g.ridgeH)} width={g.roofZ1 - g.roofZ0} height={g.ridgeH - g.eaveH} fill="#cbd5e1" stroke="#334155" strokeWidth={2} />
+          <rect x={roofX} y={Y(g.ridgeH)} width={g.roofZ1 - g.roofZ0} height={g.ridgeH - g.eaveH} fill="url(#roofHatch)" opacity={0.6} />
+          <line x1={roofX} y1={Y(g.ridgeH)} x2={roofX + (g.roofZ1 - g.roofZ0)} y2={Y(g.ridgeH)} stroke="#0f172a" strokeWidth={4} />
+        </>
+      )}
       <rect x={0} y={Y(wallH)} width={D} height={wallH} fill={color} stroke={isExtSide ? '#b91c1c' : '#0f172a'} strokeWidth={2} />
       {Array.from({ length: Math.floor(D / 90) }, (_, i) => (
         <line key={i} x1={(i + 1) * 90} y1={Y(wallH)} x2={(i + 1) * 90} y2={0} stroke="#0f172a" strokeWidth={0.6} opacity={0.35} />
@@ -209,12 +253,25 @@ function SideElevation({ design, view }: { design: Design; view: 'left' | 'right
       {cols.map((c) => (
         <rect key={c.id} x={R(c.z - c.size / 2, c.size)} y={Y(wallH)} width={c.size} height={wallH} fill={c.isNew ? '#9ca3af' : '#1d4ed8'} stroke="#0f172a" />
       ))}
-      {isExtSide && g.leanTo && (
+      {isExtSide && g.canopy && (
         <g>
-          <rect x={roofX} y={Y(g.leanTo.yHigh)} width={g.roofZ1 - g.roofZ0} height={g.leanTo.yHigh - g.leanTo.yLow} fill="#cbd5e1" stroke="#334155" strokeWidth={2} />
-          <rect x={roofX} y={Y(g.leanTo.yHigh)} width={g.roofZ1 - g.roofZ0} height={g.leanTo.yHigh - g.leanTo.yLow} fill="url(#roofHatch)" opacity={0.6} />
-          <text x={D / 2} y={Y((g.leanTo.yHigh + g.leanTo.yLow) / 2 - 5)} fontSize={fs - 5} textAnchor="middle" fill="#1e293b" fontWeight={700}>
-            ATAP MIRING PERLUASAN
+          {/* tepi atap pelana existing (di belakang) dibuat tipis */}
+          <rect x={roofX} y={Y(g.ridgeH)} width={g.roofZ1 - g.roofZ0} height={g.ridgeH - g.eaveH} fill="#e2e8f0" stroke="#94a3b8" strokeWidth={1.5} strokeDasharray="10 6" />
+          {/* ATAP DATAR perluasan: pita rata, paling dekat dengan pengamat */}
+          <rect x={roofX} y={Y(g.canopy.y)} width={g.roofZ1 - g.roofZ0} height={16} fill="#cbd5e1" stroke="#334155" strokeWidth={2.5} />
+          <rect x={roofX} y={Y(g.canopy.y)} width={g.roofZ1 - g.roofZ0} height={16} fill="url(#roofHatch)" opacity={0.6} />
+          <text
+            x={D / 2}
+            y={Y(g.canopy.y) - 10}
+            fontSize={fs - 4}
+            textAnchor="middle"
+            fill="#0f172a"
+            fontWeight={700}
+            stroke="#ffffff"
+            strokeWidth={3.5}
+            paintOrder="stroke"
+          >
+            ATAP DATAR PERLUASAN {Math.round(g.canopy.y)} cm
           </text>
         </g>
       )}
@@ -233,8 +290,11 @@ function SideElevation({ design, view }: { design: Design; view: 'left' | 'right
       <Ground x0={vb.x + 20} x1={vb.x + vb.w - 20} />
       <HDim xa={0} xb={D} y={0} offset={60} label={`${D} cm`} fontSize={fs} />
       <HDim xa={roofX} xb={roofX + (g.roofZ1 - g.roofZ0)} y={0} offset={95} label={`${g.roofZ1 - g.roofZ0} (atap + tritisan)`} fontSize={fs - 4} color="#475569" />
-      <Dim x1={D} y1={0} x2={D} y2={Y(wallH)} offset={70} label={`${wallH}`} fontSize={fs - 2} />
+      <Dim x1={D} y1={0} x2={D} y2={Y(wallH)} offset={70} label={`${Math.round(wallH)}`} fontSize={fs - 2} />
       <Dim x1={D} y1={0} x2={D} y2={Y(g.ridgeH)} offset={140} label={`${g.ridgeH}`} fontSize={fs - 2} />
+      {isExtSide && g.canopy && (
+        <Dim x1={roofX} y1={Y(g.canopy.y)} x2={roofX} y2={Y(g.ridgeH)} offset={-70} label={`beda ${Math.round(g.ridgeH - g.canopy.y)}`} fontSize={fs - 5} color="#64748b" />
+      )}
       {showFence && <Dim x1={0} y1={0} x2={0} y2={Y(d.fence.height)} offset={-70} label={`${d.fence.height} (pagar)`} fontSize={fs - 4} color="#334155" />}
       <text x={-20} y={-10} fontSize={fs - 4} fill="#64748b" textAnchor="end">
         {mir ? 'DEPAN' : 'BELAKANG'}
@@ -264,7 +324,7 @@ export function CrossSection({ design }: { design: Design }) {
   const padL = Math.max(200, gap + 140);
   const vb = { x: -padL, y: Y(g.ridgeH + 90), w: g.totalWidth + padL + 230, h: g.ridgeH + 90 + 130 };
   const midCols = d.columns.filter((c) => Math.abs(c.z - g.depth / 2) < 120);
-  const extH = Math.min(d.extension.wallHeight, d.wallHeight);
+  const extH = g.canopy ? g.canopy.wallH : d.wallHeight;
   return (
     <Frame title="POTONGAN MELINTANG A-A" subtitle="dipotong di tengah bangunan, dilihat ke arah belakang" vb={vb}>
       <rect x={0} y={0} width={g.totalWidth} height={12} fill="url(#concrete)" stroke="#0f172a" strokeWidth={1} />
@@ -280,11 +340,26 @@ export function CrossSection({ design }: { design: Design }) {
         </g>
       ))}
       <Truss x0={g.mainX0} x1={g.mainX1} wallH={g.wallH} ridgeH={g.ridgeH} overhang={d.overhang} eaveH={g.eaveH} />
-      {g.leanTo && (
-        <>
-          <line x1={g.leanTo.xLow} y1={Y(g.leanTo.yLow)} x2={g.leanTo.xHigh} y2={Y(g.leanTo.yHigh)} stroke="#334155" strokeWidth={9} />
-          <line x1={g.leanTo.xLow} y1={Y(g.leanTo.yLow)} x2={g.leanTo.xHigh} y2={Y(g.leanTo.yHigh)} stroke="#94a3b8" strokeWidth={4} />
-        </>
+      {g.canopy && (
+        <g>
+          {/* atap datar perluasan: garis rata */}
+          <line x1={g.canopy.x0} y1={Y(g.canopy.y)} x2={g.canopy.x1} y2={Y(g.canopy.y)} stroke="#334155" strokeWidth={10} strokeLinecap="butt" />
+          <line x1={g.canopy.x0} y1={Y(g.canopy.y)} x2={g.canopy.x1} y2={Y(g.canopy.y)} stroke="#94a3b8" strokeWidth={4} strokeLinecap="butt" />
+          {/* talang tepi */}
+          <rect x={g.canopy.x0} y={Y(g.canopy.y)} width={7} height={22} fill="#475569" />
+          <text
+            x={(g.canopy.x0 + g.canopy.x1) / 2}
+            y={Y(g.canopy.y * 0.55)}
+            fontSize={fs - 6}
+            textAnchor="middle"
+            fill="#0f172a"
+            fontWeight={700}
+            letterSpacing={1}
+            transform={`rotate(-90 ${(g.canopy.x0 + g.canopy.x1) / 2} ${Y(g.canopy.y * 0.55)})`}
+          >
+            ATAP DATAR PERLUASAN
+          </text>
+        </g>
       )}
       {d.gensets.map((gs) => (
         <g key={gs.id}>
@@ -293,12 +368,26 @@ export function CrossSection({ design }: { design: Design }) {
           {Array.from({ length: 4 }, (_, i) => (
             <line key={i} x1={gs.x + 10} y1={Y(gs.foundationH + gs.h * (0.3 + i * 0.12))} x2={gs.x + gs.w - 10} y2={Y(gs.foundationH + gs.h * (0.3 + i * 0.12))} stroke="#0f172a" strokeWidth={0.8} opacity={0.5} />
           ))}
-          <text x={gs.x + gs.w / 2} y={Y(gs.foundationH + gs.h + 12)} fontSize={fs - 5} textAnchor="middle" fontWeight={700} fill="#0f172a">
+          <text
+            x={gs.x + gs.w / 2}
+            y={Y(gs.foundationH + gs.h - 18)}
+            fontSize={fs - 5}
+            textAnchor="middle"
+            fontWeight={700}
+            fill="#0f172a"
+            stroke="#ffffff"
+            strokeWidth={3}
+            paintOrder="stroke"
+          >
             {gs.label}
           </text>
           <Dim x1={gs.x + gs.w} y1={Y(gs.foundationH)} x2={gs.x + gs.w} y2={Y(gs.foundationH + gs.h)} offset={26} label={`${gs.h}`} fontSize={fs - 5} color="#1d4ed8" />
-          {gs.foundationH > 0 && <Dim x1={gs.x + gs.w + 10} y1={0} x2={gs.x + gs.w + 10} y2={Y(gs.foundationH)} offset={52} label={`pondasi ${gs.foundationH}`} fontSize={fs - 5} color="#334155" />}
-          <HDim xa={gs.x} xb={gs.x + gs.w} y={Y(gs.foundationH + gs.h)} offset={-38} label={`${gs.w}`} fontSize={fs - 5} color="#1d4ed8" />
+          {gs.foundationH > 0 && (
+            <text x={gs.x + gs.w / 2} y={Y(gs.foundationH / 2) + 4} fontSize={fs - 6} textAnchor="middle" fontWeight={700} fill="#334155">
+              pondasi {gs.foundationH} cm
+            </text>
+          )}
+          <HDim xa={gs.x} xb={gs.x + gs.w} y={Y(gs.foundationH + gs.h)} offset={-12} label={`${gs.w}`} fontSize={fs - 5} color="#1d4ed8" />
         </g>
       ))}
       {(() => {
@@ -319,8 +408,8 @@ export function CrossSection({ design }: { design: Design }) {
       <Dim x1={g.totalWidth} y1={0} x2={g.totalWidth} y2={Y(g.wallH)} offset={70} label={`${g.wallH}`} fontSize={fs - 2} />
       <Dim x1={g.totalWidth} y1={0} x2={g.totalWidth} y2={Y(g.ridgeH)} offset={140} label={`${g.ridgeH}`} fontSize={fs - 2} />
       {d.extension.enabled && <Dim x1={0} y1={0} x2={0} y2={Y(extH)} offset={-(gap + 50)} label={`${extH}`} fontSize={fs - 3} color="#b45309" />}
-      {d.extension.enabled && g.leanTo && (
-        <Dim x1={-10} y1={Y(g.leanTo.yLow)} x2={-10} y2={Y(g.leanTo.yHigh)} offset={-(gap + 100)} label={`${Math.round(g.leanTo.yHigh - g.leanTo.yLow)} (beda tinggi atap)`} fontSize={fs - 5} color="#475569" />
+      {d.extension.enabled && g.canopy && (
+        <Dim x1={g.canopy.x0} y1={0} x2={g.canopy.x0} y2={Y(g.canopy.y)} offset={-(gap + 100)} label={`atap datar ${Math.round(g.canopy.y)}`} fontSize={fs - 5} color="#475569" />
       )}
     </Frame>
   );

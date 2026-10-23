@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { POV, Variant, ViewOptions } from './types';
 import { useDesigns } from './hooks/useDesigns';
 import { FloorPlan } from './components/plan/FloorPlan';
@@ -6,21 +6,32 @@ import { FrontElevation, BackElevation, LeftElevation, RightElevation, CrossSect
 import { Viewer3D, type PovRequest } from './components/three/Viewer3D';
 import { Editor } from './components/Editor';
 import { ConceptNotes, QuantityTable } from './components/ConceptNotes';
+import { QuickGuide, Legend } from './components/Guide';
+import { DesignChecks } from './components/DesignChecks';
 import { derive, m2 } from './lib/geometry';
 import { cn } from './utils/cn';
 
 type Tab = '2d' | '3d';
 
-const POVS: { id: POV; label: string; icon: string }[] = [
-  { id: 'iso', label: 'Isometrik', icon: '◈' },
-  { id: 'front', label: 'Depan', icon: '▣' },
-  { id: 'right', label: 'Kanan', icon: '▶' },
-  { id: 'back', label: 'Belakang', icon: '▤' },
-  { id: 'left', label: 'Kiri', icon: '◀' },
-  { id: 'top', label: 'Atas', icon: '▲' },
-  { id: 'isoBack', label: 'Iso Belakang', icon: '◇' },
-  { id: 'interior', label: 'Interior', icon: '⌂' },
+const POVS: { id: POV; label: string; icon: string; hint: string }[] = [
+  { id: 'iso', label: 'Isometrik', icon: '◈', hint: 'Tampak 3D dari depan–kanan–atas' },
+  { id: 'front', label: 'Depan', icon: '▣', hint: 'Sisi pintu masuk' },
+  { id: 'right', label: 'Kanan', icon: '▶', hint: 'Sisi kanan bangunan' },
+  { id: 'back', label: 'Belakang', icon: '▤', hint: 'Sisi belakang bangunan' },
+  { id: 'left', label: 'Kiri (pagar)', icon: '◀', hint: 'Sisi perluasan / bekas jalur pagar' },
+  { id: 'top', label: 'Atas', icon: '▲', hint: 'Denah atap dilihat dari atas' },
+  { id: 'isoBack', label: 'Iso Belakang', icon: '◇', hint: 'Tampak 3D dari belakang–kiri–atas' },
+  { id: 'interior', label: 'Interior', icon: '⌂', hint: 'Berdiri di dalam ruang, dekat pintu' },
 ];
+
+const DEFAULT_OPTS: ViewOptions = {
+  showDimensions: true,
+  showLabels: true,
+  showRoof: true,
+  transparentWalls: false,
+  showContext: true,
+  autoRotate: false,
+};
 
 export default function App() {
   const api = useDesigns();
@@ -33,14 +44,8 @@ export default function App() {
   const [showDetailDims, setShowDetailDims] = useState(true);
   const [showConcept, setShowConcept] = useState(true);
   const [pov, setPov] = useState<PovRequest>({ pov: 'iso', n: 0 });
-  const [opts, setOpts] = useState<ViewOptions>({
-    showDimensions: true,
-    showLabels: true,
-    showRoof: true,
-    transparentWalls: false,
-    showContext: true,
-    autoRotate: false,
-  });
+  const [opts, setOpts] = useState<ViewOptions>(DEFAULT_OPTS);
+  const [showGuide, setShowGuide] = useState(true);
 
   const design = designs[variant];
   const g = derive(design);
@@ -48,6 +53,32 @@ export default function App() {
   const toggleOpt = (k: keyof ViewOptions) => setOpts((o) => ({ ...o, [k]: !o[k] }));
 
   const variantsToShow: Variant[] = compare ? ['before', 'after'] : [variant];
+
+  // pindah tab → kembali ke atas supaya pengguna tidak "nyasar" di tengah halaman
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [tab]);
+
+  // pintasan keyboard: 1/2 = tab, B/A = varian, V = bandingkan
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const k = e.key.toLowerCase();
+      if (k === '1') setTab('2d');
+      else if (k === '2') setTab('3d');
+      else if (k === 'b') {
+        setVariant('before');
+        setCompare(false);
+      } else if (k === 'a') {
+        setVariant('after');
+        setCompare(false);
+      } else if (k === 'v') setCompare((c) => !c);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900">
@@ -58,7 +89,17 @@ export default function App() {
             <h1 className="text-base font-bold leading-tight tracking-tight sm:text-lg">
               Rumah Genset <span className="text-slate-400">—</span> Desain 2D & 3D Interaktif
             </h1>
-            <p className="text-[11px] text-slate-500">Before → After • lengkap dengan ukuran, POV semua sisi, dan dapat diedit</p>
+            <p className="flex flex-wrap items-center gap-x-2 text-[11px] text-slate-500">
+              <span>Before → After • lengkap dengan ukuran, POV semua sisi, dan dapat diedit</span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-1.5 py-0.5 font-semibold text-emerald-700">
+                ✓ tersimpan otomatis
+                {api.savedAt && (
+                  <span className="font-normal text-emerald-600/80">
+                    {new Date(api.savedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                )}
+              </span>
+            </p>
           </div>
 
           {/* tabs */}
@@ -115,8 +156,17 @@ export default function App() {
             type="button"
             onClick={() => setShowEditor((s) => !s)}
             className={cn('rounded-lg border px-3 py-1.5 text-sm font-medium transition', showEditor ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50')}
+            title="Buka/tutup panel pengaturan ukuran"
           >
             ✎ Editor
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowGuide((s) => !s)}
+            className={cn('rounded-lg border px-3 py-1.5 text-sm font-medium transition', showGuide ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50')}
+            title="Panduan singkat pemakaian & arti warna"
+          >
+            ? Panduan
           </button>
         </div>
       </header>
@@ -124,6 +174,15 @@ export default function App() {
       {/* ---------------- BODY ---------------- */}
       <div className="mx-auto flex max-w-[1800px] flex-col gap-4 p-4 lg:flex-row">
         <main className="min-w-0 flex-1 space-y-4">
+          {showGuide && <QuickGuide onClose={() => setShowGuide(false)} />}
+          {compare && (
+            <div className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-[12px] text-blue-900">
+              <b>Mode banding aktif.</b> Klik BEFORE/AFTER di panel Editor kanan untuk memilih varian yang mau diedit.
+              Pintasan: <kbd className="rounded bg-white px-1">1</kbd>/<kbd className="rounded bg-white px-1">2</kbd> ganti tab,{' '}
+              <kbd className="rounded bg-white px-1">B</kbd>/<kbd className="rounded bg-white px-1">A</kbd> ganti varian,{' '}
+              <kbd className="rounded bg-white px-1">V</kbd> bandingkan.
+            </div>
+          )}
           {tab === '2d' ? (
             <>
               {/* concept */}
@@ -140,6 +199,22 @@ export default function App() {
                     <ConceptNotes />
                   </div>
                 )}
+              </section>
+
+              {/* design checks */}
+              <section className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+                <div className="mb-3">
+                  <h2 className="text-base font-bold">Pemeriksaan Desain Otomatis</h2>
+                  <p className="text-xs text-slate-500">
+                    Diperiksa setiap kali ukuran diubah: pintu keluar dinding, genset bertumpuk/keluar batas, ruang bebas ke atap,
+                    dan tinggi atap datar perluasan.
+                  </p>
+                </div>
+                <div className={cn('grid gap-3', compare && 'xl:grid-cols-2')}>
+                  {variantsToShow.map((v) => (
+                    <DesignChecks key={v} design={designs[v]} variant={v} />
+                  ))}
+                </div>
               </section>
 
               {/* floor plans */}
@@ -210,46 +285,68 @@ export default function App() {
           ) : (
             <section className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
               {/* 3D toolbar */}
-              <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 px-3 py-2">
-                <span className="mr-1 text-[11px] font-bold uppercase tracking-wide text-slate-500">POV</span>
-                {POVS.map((p) => (
+              <div className="border-b border-slate-200 px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <span className="shrink-0 text-[11px] font-bold uppercase tracking-wide text-slate-500">Sudut pandang</span>
+                  <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto pb-0.5">
+                    {POVS.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        title={p.hint}
+                        onClick={() => goPov(p.id)}
+                        className={cn(
+                          'shrink-0 rounded-md border px-2.5 py-1 text-xs font-medium transition',
+                          pov.pov === p.id ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50',
+                        )}
+                      >
+                        <span className="mr-1 opacity-70">{p.icon}</span>
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Tampilan</span>
+                  {(
+                    [
+                      ['showDimensions', 'Ukuran', 'Tampilkan garis ukur 3D'],
+                      ['showLabels', 'Label', 'Nama tiang, genset, dan tinggi atap'],
+                      ['showRoof', 'Atap', 'Sembunyikan atap untuk melihat rangka di dalam'],
+                      ['transparentWalls', 'Dinding transparan', 'Lihat posisi genset di balik dinding'],
+                      ['showContext', 'Lingkungan', 'Gedung & taman sekitar sebagai konteks'],
+                      ['autoRotate', 'Putar otomatis', 'Kamera berputar pelan'],
+                    ] as [keyof ViewOptions, string, string][]
+                  ).map(([k, label, hint]) => (
+                    <button
+                      key={k}
+                      type="button"
+                      title={hint}
+                      onClick={() => toggleOpt(k)}
+                      className={cn(
+                        'rounded-full border px-2.5 py-1 text-[11px] font-medium transition',
+                        opts[k] ? 'border-slate-800 bg-slate-800 text-white' : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50',
+                      )}
+                    >
+                      {opts[k] ? '✓ ' : ''}
+                      {label}
+                    </button>
+                  ))}
                   <button
-                    key={p.id}
                     type="button"
-                    onClick={() => goPov(p.id)}
-                    className={cn(
-                      'rounded-md border px-2.5 py-1 text-xs font-medium transition',
-                      pov.pov === p.id ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50',
-                    )}
+                    onClick={() => {
+                      setOpts(DEFAULT_OPTS);
+                      goPov('iso');
+                    }}
+                    className="rounded-full border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
+                    title="Kembalikan semua pengaturan tampilan 3D ke awal"
                   >
-                    <span className="mr-1 opacity-70">{p.icon}</span>
-                    {p.label}
+                    ↺ Atur ulang tampilan
                   </button>
-                ))}
-                <span className="mx-2 hidden h-5 w-px bg-slate-200 sm:block" />
-                {(
-                  [
-                    ['showDimensions', 'Ukuran'],
-                    ['showLabels', 'Label'],
-                    ['showRoof', 'Atap'],
-                    ['transparentWalls', 'Dinding transparan'],
-                    ['showContext', 'Lingkungan'],
-                    ['autoRotate', 'Putar otomatis'],
-                  ] as [keyof ViewOptions, string][]
-                ).map(([k, label]) => (
-                  <button
-                    key={k}
-                    type="button"
-                    onClick={() => toggleOpt(k)}
-                    className={cn(
-                      'rounded-full border px-2.5 py-1 text-[11px] font-medium transition',
-                      opts[k] ? 'border-slate-800 bg-slate-800 text-white' : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50',
-                    )}
-                  >
-                    {opts[k] ? '✓ ' : ''}
-                    {label}
-                  </button>
-                ))}
+                </div>
+              </div>
+              <div className="border-b border-slate-200 bg-slate-50/70 px-3 py-1.5">
+                <Legend compact />
               </div>
 
               <div className={cn('grid', compare && 'lg:grid-cols-2')}>
@@ -265,13 +362,18 @@ export default function App() {
                           <div className="font-mono">
                             {dg.totalWidth} × {dg.depth} cm • T. dinding {dg.wallH} • Bubungan {dg.ridgeH}
                           </div>
+                          {dg.canopy && (
+                            <div className="font-mono text-amber-700">
+                              Atap perluasan: datar {Math.round(dg.canopy.y)} cm
+                            </div>
+                          )}
                           <div className="font-mono">
                             Luas {m2(dg.floorArea)} • {designs[v].columns.length} tiang • {designs[v].gensets.length} genset
                           </div>
                         </div>
                       </div>
-                      <div className="pointer-events-none absolute bottom-3 left-3 z-10 rounded-md bg-slate-900/80 px-2 py-1 text-[10px] text-white">
-                        Drag = putar • Scroll = zoom • Klik kanan/drag dua jari = geser
+                      <div className="pointer-events-none absolute bottom-3 left-3 z-10 rounded-md bg-slate-900/80 px-2 py-1 text-[10px] leading-snug text-white">
+                        Drag = putar • Scroll/pinch = zoom • Klik kanan = geser • Ubah ukuran lewat panel Editor
                       </div>
                     </div>
                   );

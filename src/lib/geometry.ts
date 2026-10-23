@@ -33,14 +33,26 @@ export interface Derived {
   slopeLen: number;
   roofZ0: number;
   roofZ1: number;
-  /** lean-to extension roof */
-  leanTo: null | {
-    xHigh: number;
-    xLow: number;
-    yHigh: number;
-    yLow: number;
-    angle: number;
+  /**
+   * Atap DATAR (flat roof) untuk perluasan sisi kiri.
+   * Permukaan atap rata & sejajar lantai, menempel ke dinding utama
+   * di bawah tritisan atap pelana (lihat sketsa).
+   */
+  canopy: null | {
+    /** tepi luar atap (cm, termasuk tritisan) */
+    x0: number;
+    /** tepi dalam atap = dinding kiri bangunan utama */
+    x1: number;
+    /** tinggi permukaan atas atap (cm) */
+    y: number;
+    /** tinggi dinding perluasan (mengikuti tinggi atap datar) */
+    wallH: number;
+    /** lebar atap (cm) */
     len: number;
+    /** true bila tinggi dinding perluasan dibatasi agar tidak menembus atap pelana */
+    capped: boolean;
+    /** luas atap datar (m2, termasuk tritisan) */
+    area: number;
   };
   walls: WallSegment[];
   floorArea: number; // m2
@@ -64,22 +76,33 @@ export function derive(d: Design): Derived {
   const roofZ0 = -d.overhang;
   const roofZ1 = d.depth + d.overhang;
 
-  let leanTo: Derived['leanTo'] = null;
+  // ---- atap datar perluasan -------------------------------------------
+  // Tinggi maksimum = sedikit di bawah tepi tritisan atap pelana supaya
+  // atap datar tidak menembus bidang atap utama.
+  const canopyYMax = eaveH - 6;
+  const canopyY = Math.min(d.extension.enabled ? d.extension.wallHeight : wallH, canopyYMax);
+  let canopy: Derived['canopy'] = null;
   if (d.extension.enabled) {
-    const yHigh = eaveH - 6; // tepat di bawah tritisan atap utama
-    const xHigh = mainX0;
-    const xLow = -d.overhang * 0.6;
-    const yLow = Math.min(d.extension.wallHeight, yHigh - 12);
-    const angle = Math.atan2(yHigh - yLow, xHigh - xLow);
-    const len = Math.hypot(xHigh - xLow, yHigh - yLow);
-    leanTo = { xHigh, xLow, yHigh, yLow, angle, len };
+    const x0 = -d.overhang * 0.6;
+    const x1 = mainX0;
+    const len = x1 - x0;
+    canopy = {
+      x0,
+      x1,
+      y: canopyY,
+      wallH: canopyY,
+      len,
+      capped: d.extension.wallHeight > canopyYMax + 0.5,
+      area: (len * (roofZ1 - roofZ0)) / 10000,
+    };
   }
 
   // ---- walls -----------------------------------------------------------
   const walls: WallSegment[] = [];
   const mainMat = d.wallMaterial;
   const extMat = d.extension.material;
-  const extH = d.extension.enabled ? Math.min(d.extension.wallHeight, wallH) : wallH;
+  // tinggi dinding perluasan = tinggi atap datar (agar atap menumpu dinding)
+  const extH = canopy ? canopy.wallH : wallH;
 
   const door = d.door;
   const pushWithDoor = (
@@ -162,8 +185,8 @@ export function derive(d: Design): Derived {
   const floorArea = (totalWidth * d.depth) / 10000;
   const addedArea = (ext * d.depth) / 10000;
   const mainRoofArea = (2 * slopeLen * (roofZ1 - roofZ0)) / 10000;
-  const leanArea = leanTo ? (leanTo.len * (roofZ1 - roofZ0)) / 10000 : 0;
-  const roofArea = mainRoofArea + leanArea;
+  const canopyArea = canopy ? canopy.area : 0;
+  const roofArea = mainRoofArea + canopyArea;
   const foundationVolume = d.gensets.reduce(
     (s, g) => s + (g.foundationH > 0 ? ((g.w + 20) * (g.d + 20) * g.foundationH) / 1e6 : 0),
     0,
@@ -185,7 +208,7 @@ export function derive(d: Design): Derived {
     slopeLen,
     roofZ0,
     roofZ1,
-    leanTo,
+    canopy,
     walls,
     floorArea,
     addedArea,

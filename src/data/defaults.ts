@@ -21,7 +21,7 @@ export const BEFORE: Design = {
   roofRise: 140,
   overhang: 50,
   wallMaterial: 'spandek',
-  extension: { enabled: false, width: 150, wallHeight: 240, material: 'triplek' },
+  extension: { enabled: false, width: 150, wallHeight: 265, material: 'triplek' },
   columns: [
     { id: 'k1', label: 'K1', x: COL / 2, z: COL / 2, size: COL },
     { id: 'k2', label: 'K2', x: COL / 2 + 450, z: COL / 2, size: COL },
@@ -62,7 +62,9 @@ export const BEFORE: Design = {
  *  - Tiang BARU di tengah dinding kiri baru (jarak ±120 cm ke genset baru)
  *  - Tiang tengah kiri lama (K3) dihilangkan (bertabrakan dengan genset baru)
  *  - Genset existing tetap pada posisinya
- *  - Atap perluasan: miring satu sisi (lean-to) lebih rendah, dinding triplek
+ *  - Atap perluasan: DATAR (rata, sejajar lantai) menempel ke dinding utama
+ *    di bawah tritisan atap pelana — sesuai sketsa terbaru
+ *  - Dinding perluasan triplek, tinggi mengikuti bidang atap datar
  */
 export const AFTER: Design = {
   id: 'after',
@@ -73,7 +75,7 @@ export const AFTER: Design = {
   roofRise: 140,
   overhang: 50,
   wallMaterial: 'spandek',
-  extension: { enabled: true, width: 150, wallHeight: 240, material: 'triplek' },
+  extension: { enabled: true, width: 150, wallHeight: 265, material: 'triplek' },
   columns: [
     { id: 'k1', label: 'K1', x: 150 + COL / 2, z: COL / 2, size: COL },
     { id: 'k2', label: 'K2', x: 150 + COL / 2 + 450, z: COL / 2, size: COL },
@@ -111,10 +113,11 @@ export const AFTER: Design = {
   fence: { visible: true, gap: 20, height: 180 },
   notes: [
     'Pagar digeser ke luar sehingga area 150 cm masuk ke dalam rumah genset.',
-    'Perluasan diberi atap miring satu sisi (lean-to) di bawah tritisan atap pelana existing.',
-    'Genset baru 200 x 500 cm di atas pondasi beton setinggi 30 cm.',
+    'Atap perluasan DATAR (rata, bukan miring), dipasang menempel ke dinding utama di bawah tritisan atap pelana.',
+    'Bidang atap datar disetarakan ±265 cm (sedikit di bawah tritisan ±275 cm) agar tidak menembus atap pelana.',
+    'Genset baru 200 x 500 cm di atas pondasi beton setinggi 30 cm; sisa ruang bebas ±15 cm ke balok atap.',
     'Tiang baru di dinding kiri perluasan; tiang tengah kiri lama dibongkar.',
-    'Dinding perluasan: triplek (dapat diganti bata ringan / spandek).',
+    'Dinding perluasan: triplek (dapat diganti bata ringan / spandek); atap datar diberi talang tepi.',
   ],
 };
 

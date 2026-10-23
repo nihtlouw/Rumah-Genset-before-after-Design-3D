@@ -66,8 +66,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # build:pages menghasilkan dist/index.html + index.html di root,
+      # supaya artifact Actions juga punya halaman utama (bukan 404).
       - name: Build (single-file Vite bundle)
-        run: npm run build
+        run: npm run build:pages
+
+      - name: Pastikan artifact punya index.html
+        run: test -f dist/index.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

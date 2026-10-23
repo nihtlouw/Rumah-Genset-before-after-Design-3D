@@ -7,9 +7,17 @@ Aplikasi web interaktif untuk membandingkan desain **Rumah Genset BEFORE (existi
 
 **https://nihtlouw.github.io/Rumah-Genset-before-after-Design-3D/**
 
-Cara kerjanya: GitHub Pages repo ini memakai mode **“Deploy from a branch → main /”**, sehingga
-yang disajikan adalah `index.html` di root. File itu **hasil build siap-saji** (satu file, JS & CSS
-inline) yang di-generate dari `dev.html` + `src/`.
+Cara kerjanya: GitHub Pages repo ini disajikan dari `index.html` di root (`main`), **dan** bisa juga
+dari artifact GitHub Actions. Keduanya harus berisi `index.html`, karena itu `npm run build:pages`
+menulis hasil build siap-saji (satu file, JS & CSS inline) ke **dua tempat**:
+
+| Lokasi | Dipakai oleh |
+| --- | --- |
+| `index.html` (root repo) | mode “Deploy from a branch → main /” |
+| `dist/index.html` | artifact job `deploy-pages` (mode “Source: GitHub Actions”) |
+
+> Kalau salah satu tidak punya `index.html`, situs akan menampilkan **“404 — File not found”**
+> (ini yang terjadi saat artifact hanya berisi `dev.html`).
 
 - Setiap push ke `main`, workflow **“Deploy to GitHub Pages”** menjalankan `npm run build:pages`
   lalu meng-commit ulang `index.html` bila ada perubahan (commit `chore(pages): rebuild index.html`).
@@ -61,7 +69,7 @@ Workflow: [`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.
 | Job | Fungsi |
 | --- | --- |
 | `publish-html` | build + commit `index.html` ke `main` (dipakai mode “deploy from branch”) |
-| `build` / `deploy` | build artifact + deploy via Actions (dipakai bila Source = GitHub Actions) |
+| `build` / `deploy` | `build:pages` → artifact `dist/` (berisi `index.html`) → deploy via Actions |
 
 Karena `vite-plugin-singlefile` dipakai, hasil build berupa satu file HTML sehingga tidak ada
 masalah path aset di subfolder GitHub Pages.

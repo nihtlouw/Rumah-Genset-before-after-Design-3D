@@ -1,9 +1,12 @@
 /**
- * Salin hasil build single-file (dist/dev.html) menjadi index.html di root repo.
+ * Salin hasil build single-file menjadi index.html.
  *
- * Kenapa: GitHub Pages repo ini diset "Deploy from a branch" (main /), jadi yang
- * disajikan adalah index.html di root. Dengan menaruh hasil build di situ,
- * situs langsung berjalan tanpa perlu mengubah setting Pages sama sekali.
+ * Ditulis ke DUA tempat, karena GitHub Pages di repo ini bisa dilayani dari:
+ *  1. branch `main` (mode "Deploy from a branch: main /")  -> index.html di root repo
+ *  2. artifact GitHub Actions (job deploy-pages)            -> index.html di dalam dist/
+ *
+ * Kalau salah satu tidak punya index.html, situs akan menampilkan
+ * "404 — File not found".
  *
  * Jalankan: npm run build:pages
  */
@@ -12,7 +15,7 @@ import path from 'node:path';
 
 const root = process.cwd();
 const src = path.join(root, 'dist', 'dev.html');
-const out = path.join(root, 'index.html');
+const targets = [path.join(root, 'index.html'), path.join(root, 'dist', 'index.html')];
 
 if (!fs.existsSync(src)) {
   console.error('dist/dev.html tidak ditemukan — jalankan "vite build" dulu.');
@@ -25,8 +28,11 @@ const banner = `<!--
   Regenerate: npm run build:pages
 -->\n`;
 
-const html = fs.readFileSync(src, 'utf8');
-fs.writeFileSync(out, banner + html);
+const html = banner + fs.readFileSync(src, 'utf8');
 
-const kb = (fs.statSync(out).size / 1024).toFixed(0);
-console.log(`✓ index.html (siap untuk GitHub Pages, ${kb} kB)`);
+for (const target of targets) {
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.writeFileSync(target, html);
+  const kb = (fs.statSync(target).size / 1024).toFixed(0);
+  console.log(`✓ ${path.relative(root, target)} (${kb} kB)`);
+}

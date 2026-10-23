@@ -9,7 +9,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // https://vite.dev/config/
+// GitHub Pages project site: https://<user>.github.io/<repo>/
+// Bisa dioverride lewat env VITE_BASE (mis. "/" saat dipakai di domain sendiri).
+const base = process.env.VITE_BASE ?? "/Rumah-Genset-before-after-Design-3D/";
+
 export default defineConfig({
+  base,
   plugins: [react(), tailwindcss(), viteSingleFile()],
   server: {
     host: true,

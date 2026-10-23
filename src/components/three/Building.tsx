@@ -40,7 +40,8 @@ export function Building({ design, options }: { design: Design; options: ViewOpt
   const Z = (z: number) => (z - oz) / 100;
   const H = (h: number) => h / 100;
 
-  const extH = Math.min(d.extension.wallHeight, d.wallHeight);
+  // tinggi dinding perluasan mengikuti atap datar (lihat derive().canopy)
+  const extH = g.canopy ? g.canopy.wallH : d.wallHeight;
   const cxMain = (g.mainX0 + g.mainX1) / 2;
   const roofLen = (g.roofZ1 - g.roofZ0) / 100;
   const roofZc = (g.roofZ0 + g.roofZ1) / 2;
@@ -237,30 +238,64 @@ export function Building({ design, options }: { design: Design; options: ViewOpt
         </group>
       )}
 
-      {/* ---------------- LEAN-TO (atap perluasan) ---------------- */}
-      {g.leanTo && (
+      {/* ---------------- ATAP DATAR PERLUASAN ---------------- */}
+      {g.canopy && (
         <group>
+          {/* bidang atap datar: rata & sejajar lantai, menempel ke dinding utama */}
           {options.showRoof && (
             <mesh
-              position={[X((g.leanTo.xLow + g.leanTo.xHigh) / 2), H((g.leanTo.yLow + g.leanTo.yHigh) / 2), Z(roofZc)]}
-              rotation={[0, 0, g.leanTo.angle]}
+              position={[X((g.canopy.x0 + g.canopy.x1) / 2), H(g.canopy.y), Z(roofZc)]}
               castShadow
               receiveShadow
             >
-              <boxGeometry args={[g.leanTo.len / 100, 0.035, roofLen]} />
-              <meshStandardMaterial color={ROOF} metalness={0.55} roughness={0.4} side={DoubleSide} />
+              <boxGeometry args={[g.canopy.len / 100, 0.05, roofLen]} />
+              <meshStandardMaterial color={ROOF} metalness={0.5} roughness={0.45} side={DoubleSide} />
             </mesh>
           )}
+          {/* talang / balok tepi (fascia) di sisi luar — seperti arsiran pada sketsa */}
+          {options.showRoof && (
+            <>
+              <mesh position={[X(g.canopy.x0), H(g.canopy.y - 11), Z(roofZc)]} castShadow>
+                <boxGeometry args={[0.09, 0.24, roofLen]} />
+                <meshStandardMaterial color="#6b7280" metalness={0.55} roughness={0.4} />
+              </mesh>
+              {/* talang depan & belakang */}
+              {[g.roofZ0, g.roofZ1].map((z, i) => (
+                <mesh key={i} position={[X((g.canopy!.x0 + g.canopy!.x1) / 2), H(g.canopy!.y - 8), Z(z)]}>
+                  <boxGeometry args={[g.canopy!.len / 100, 0.16, 0.07]} />
+                  <meshStandardMaterial color="#6b7280" metalness={0.55} roughness={0.4} />
+                </mesh>
+              ))}
+            </>
+          )}
+          {/* rangka balok datar (setiap garis kuda-kuda) */}
           {trussZs.map((z, i) => (
             <Bar
               key={i}
-              from={[X(g.leanTo!.xLow), H(g.leanTo!.yLow - 6), Z(z)]}
-              to={[X(g.leanTo!.xHigh), H(g.leanTo!.yHigh - 6), Z(z)]}
+              from={[X(g.canopy!.x0 + 4), H(g.canopy!.y - 9), Z(z)]}
+              to={[X(g.canopy!.x1), H(g.canopy!.y - 9), Z(z)]}
               size={0.08}
               color="#7c8089"
             />
           ))}
-          <Bar from={[X(g.leanTo.xHigh), H(g.leanTo.yHigh - 10), Z(g.roofZ0)]} to={[X(g.leanTo.xHigh), H(g.leanTo.yHigh - 10), Z(g.roofZ1)]} size={0.08} color="#7c8089" />
+          {/* gording / reng memanjang di atas balok */}
+          {[0.25, 0.55, 0.85].map((t) => (
+            <Bar
+              key={t}
+              from={[X(g.canopy!.x0 + (g.canopy!.len * t)), H(g.canopy!.y - 5), Z(g.roofZ0)]}
+              to={[X(g.canopy!.x0 + (g.canopy!.len * t)), H(g.canopy!.y - 5), Z(g.roofZ1)]}
+              size={0.05}
+              color="#94a3b8"
+            />
+          ))}
+          {options.showLabels && (
+            <Label3
+              position={[X((g.canopy.x0 + g.canopy.x1) / 2), H(g.canopy.y) + 0.3, Z(g.roofZ1 - 40)]}
+              text={`ATAP DATAR PERLUASAN • t ${Math.round(g.canopy.y)} cm`}
+              tone="new"
+              small
+            />
+          )}
         </group>
       )}
 
@@ -387,6 +422,24 @@ export function Building({ design, options }: { design: Design; options: ViewOpt
           <Dim3 a={[X(g.totalWidth), 0, Z(d.depth)]} b={[X(g.totalWidth), H(d.wallHeight), Z(d.depth)]} offset={[0.5, 0, 0.5]} label={`Tinggi dinding ${d.wallHeight}`} />
           <Dim3 a={[X(cxMain), 0, Z(g.roofZ1)]} b={[X(cxMain), H(g.ridgeH), Z(g.roofZ1)]} offset={[0, 0, 0.7]} label={`Bubungan ${g.ridgeH}`} />
           <Dim3 a={[X(g.mainX1 + d.overhang), H(g.eaveH), Z(g.roofZ1)]} b={[X(g.mainX1 + d.overhang), H(g.ridgeH), Z(g.roofZ1)]} offset={[0.35, 0, 0.3]} label={`Naik ${Math.round(g.ridgeH - g.eaveH)} (${g.pitchDeg.toFixed(0)}°)`} tone="sub" />
+          {g.canopy && (
+            <>
+              <Dim3
+                a={[X(g.canopy.x0), 0, Z(g.roofZ1)]}
+                b={[X(g.canopy.x0), H(g.canopy.y), Z(g.roofZ1)]}
+                offset={[-0.25, 0, 0.35]}
+                label={`Atap datar ${Math.round(g.canopy.y)}`}
+                tone="new"
+              />
+              <Dim3
+                a={[X(g.canopy.x0), H(g.canopy.y) + 0.02, Z(g.roofZ0)]}
+                b={[X(g.canopy.x1), H(g.canopy.y) + 0.02, Z(g.roofZ0)]}
+                offset={[0, 0, -0.3]}
+                label={`Lebar atap datar ${Math.round(g.canopy.len)}`}
+                tone="new"
+              />
+            </>
+          )}
           {backCols.length >= 2 && (
             <Dim3 a={[X(backCols[0].x), H(d.wallHeight), Z(0)]} b={[X(backCols[1].x), H(d.wallHeight), Z(0)]} offset={[0, 0.1, -0.7]} label={`As tiang ${Math.round(backCols[1].x - backCols[0].x)}`} tone="sub" />
           )}

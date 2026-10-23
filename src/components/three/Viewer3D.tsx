@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo, useRef } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Sky, ContactShadows } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
@@ -121,8 +121,30 @@ export function Viewer3D({
   request: PovRequest;
   className?: string;
 }) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [full, setFull] = useState(false);
+
+  useEffect(() => {
+    const onChange = () => setFull(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+
+  const toggleFull = () => {
+    if (document.fullscreenElement) void document.exitFullscreen?.();
+    else void wrapRef.current?.requestFullscreen?.();
+  };
+
   return (
-    <div className={`relative overflow-hidden ${className}`}>
+    <div ref={wrapRef} className={`relative overflow-hidden bg-sky-100 ${className}`}>
+      <button
+        type="button"
+        onClick={toggleFull}
+        title={full ? 'Keluar dari layar penuh' : 'Tampilkan model 3D dalam layar penuh'}
+        className="absolute right-3 top-3 z-10 rounded-md border border-slate-300 bg-white/90 px-2 py-1 text-[11px] font-semibold text-slate-700 shadow-sm backdrop-blur hover:bg-white"
+      >
+        {full ? '✕ Keluar layar penuh' : '⛶ Layar penuh'}
+      </button>
       <Canvas
         shadows
         dpr={[1, 1.75]}

@@ -27,8 +27,9 @@ const FINDINGS = [
     color: 'border-blue-300',
     items: [
       'Tampak depan existing: atap pelana (gable) dengan 2 tiang terlihat dan pintu di tengah; bubungan searah depan–belakang.',
-      'Tampak depan rencana: atap pelana existing + atap miring satu sisi (lean-to) yang lebih rendah di sisi kiri untuk area perluasan.',
+      'Tampak depan rencana: atap pelana existing + atap DATAR (rata, sejajar lantai) di sisi kiri untuk area perluasan.',
       'Perspektif: dinding penutup menggunakan TRIPLEK pada bagian perluasan; tiang & rangka tetap.',
+      'Revisi sketsa: atap tambahan di sisi kiri harus DATAR — menempel ke dinding utama di bawah tritisan, bukan miring.',
     ],
   },
   {
@@ -63,8 +64,8 @@ export function ConceptNotes() {
         <h4 className="mb-1 text-sm font-bold">Asumsi yang dipakai (dapat diubah di Editor)</h4>
         <p className="text-[13px] leading-snug text-slate-300">
           Tinggi dinding 300 cm, tinggi naik atap 140 cm (bubungan ±440 cm, kemiringan ±26°), tritisan 50 cm, ukuran tiang 30 × 30 cm,
-          tinggi genset existing 180 cm & genset baru 220 cm, pintu 90 × 210 cm, tinggi dinding perluasan 240 cm dengan atap miring satu sisi,
-          tinggi pagar 180 cm. Orientasi: sisi depan = sisi pintu, sisi kiri = sisi pagar/taman.
+          tinggi genset existing 180 cm & genset baru 220 cm (di atas pondasi 30 cm), pintu 90 × 210 cm, tinggi dinding perluasan 265 cm
+          dengan atap DATAR yang menempel ke dinding utama, tinggi pagar 180 cm. Orientasi: sisi depan = sisi pintu, sisi kiri = sisi pagar/taman.
         </p>
       </div>
     </div>
@@ -89,6 +90,7 @@ export function QuantityTable({ before, after }: { before: Design; after: Design
       a: after.gensets.map((g) => `${g.w}×${g.d}×${g.h}`).join(', '),
     },
     { label: 'Volume pondasi genset (±)', b: m3(b.foundationVolume), a: m3(a.foundationVolume) },
+    { label: 'Atap perluasan', b: '—', a: a.canopy ? `datar, t ${Math.round(a.canopy.y)} cm` : '—' },
     { label: 'Jarak pagar ke dinding kiri', b: `${before.fence.gap} cm`, a: `${after.fence.gap} cm` },
     { label: 'Pintu', b: `${before.door.width}×${before.door.height} cm`, a: `${after.door.width}×${after.door.height} cm` },
   ];

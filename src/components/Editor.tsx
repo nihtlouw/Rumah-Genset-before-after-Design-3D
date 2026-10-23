@@ -156,11 +156,28 @@ export function Editor({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <h3 className="text-sm font-bold text-slate-900">Editor — {variant === 'before' ? 'BEFORE' : 'AFTER'}</h3>
-        <div className="flex gap-1">
-          <button type="button" onClick={() => api.reset(variant)} className="rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-50" title="Kembalikan ke data survey">
+        <div className="flex flex-wrap justify-end gap-1">
+          <button
+            type="button"
+            onClick={() => {
+              if (confirm(`Kembalikan desain ${variant.toUpperCase()} ke data survey awal? Perubahan Anda pada varian ini akan hilang.`)) api.reset(variant);
+            }}
+            className="rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-50"
+            title="Kembalikan varian ini ke data survey awal"
+          >
             Reset
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (confirm('Kembalikan BEFORE & AFTER ke data survey awal? Semua perubahan akan hilang.')) api.reset();
+            }}
+            className="rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-50"
+            title="Kembalikan kedua varian ke data survey awal"
+          >
+            Reset semua
           </button>
           <button type="button" onClick={exportJson} className="rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-50">
             Export
@@ -188,16 +205,41 @@ export function Editor({
         </div>
         <p className="text-[11px] text-slate-500">
           Kemiringan atap ≈ {g.pitchDeg.toFixed(1)}° • Tinggi bubungan {g.ridgeH} cm • Tinggi tritisan {Math.round(g.eaveH)} cm
+          {g.canopy ? ` • Atap perluasan datar ${Math.round(g.canopy.y)} cm` : ''}
         </p>
       </Section>
 
-      <Section title="Perluasan (Ekstensi Sisi Kiri)" badge={design.extension.enabled ? `+${design.extension.width} cm` : 'nonaktif'}>
-        <Toggle label="Aktifkan perluasan ke area pagar" checked={design.extension.enabled} onChange={(v) => api.setExtensionEnabled(variant, v)} />
+      <Section title="Perluasan Sisi Kiri + Atap Datar" badge={design.extension.enabled ? `+${design.extension.width} cm` : 'nonaktif'}>
+        <Toggle label="Aktifkan perluasan (bekas jalur pagar)" checked={design.extension.enabled} onChange={(v) => api.setExtensionEnabled(variant, v)} />
         <div className="grid grid-cols-2 gap-2">
           <NumField label="Lebar perluasan" value={design.extension.width} onChange={(v) => api.setExtensionWidth(variant, Math.max(30, v))} />
-          <NumField label="Tinggi dinding ekst." value={design.extension.wallHeight} onChange={(v) => set({ extension: { ...design.extension, wallHeight: Math.max(150, v) } })} />
+          <NumField
+            label="Tinggi dinding & atap"
+            value={design.extension.wallHeight}
+            onChange={(v) => set({ extension: { ...design.extension, wallHeight: Math.max(150, v) } })}
+            className="col-span-1"
+          />
           <SelectField label="Material dinding ekst." value={design.extension.material} options={MATERIALS} onChange={(v) => set({ extension: { ...design.extension, material: v } })} />
         </div>
+        {design.extension.enabled && g.canopy ? (
+          <div className="rounded-md border border-amber-200 bg-amber-50 px-2.5 py-2 text-[11px] leading-snug text-amber-900">
+            <p className="font-semibold">Atap perluasan: DATAR (rata, sesuai sketsa revisi)</p>
+            <p>
+              Tinggi bidang atap datar <b>{Math.round(g.canopy.y)} cm</b>, menempel ke dinding utama di bawah tritisan
+              atap pelana (±{Math.round(g.eaveH)} cm).
+            </p>
+            {g.canopy.capped && (
+              <p className="mt-1 font-semibold text-red-700">
+                Permintaan {design.extension.wallHeight} cm dibatasi ke {Math.round(g.canopy.y)} cm agar atap datar tidak
+                menembus atap utama.
+              </p>
+            )}
+          </div>
+        ) : (
+          <p className="text-[11px] text-slate-500">
+            Nonaktif: luas bangunan tetap {design.width} cm. Aktifkan untuk memasukkan area 150 cm bekas jalur pagar.
+          </p>
+        )}
       </Section>
 
       <Section title="Tiang / Kolom" badge={`${design.columns.length} bh`}>
@@ -247,6 +289,9 @@ export function Editor({
       </Section>
 
       <Section title="Genset" badge={`${design.gensets.length} unit`}>
+        <p className="text-[11px] text-slate-500">
+          X/Z = sudut kiri-belakang genset (cm) dari sudut kiri-belakang bangunan. Bisa juga digeser langsung di denah.
+        </p>
         <div className="space-y-2">
           {design.gensets.map((gs) => (
             <div key={gs.id} className={`space-y-1.5 rounded-md border p-2 ${selectedId === gs.id ? 'border-blue-300 bg-blue-50' : 'border-slate-200 bg-white'}`} onClick={() => onSelect(gs.id)}>
@@ -303,6 +348,7 @@ export function Editor({
       </Section>
 
       <Section title="Catatan Desain" defaultOpen={false}>
+        <p className="text-[11px] text-slate-500">Satu baris = satu poin catatan yang tampil di bawah model 3D.</p>
         <textarea
           value={design.notes.join('\n')}
           onChange={(e) => set({ notes: e.target.value.split('\n') })}

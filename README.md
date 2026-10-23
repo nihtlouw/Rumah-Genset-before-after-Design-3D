@@ -3,15 +3,20 @@
 Aplikasi web interaktif untuk membandingkan desain **Rumah Genset BEFORE (existing)** dan
 **AFTER (rencana)** — lengkap dengan denah 2D, tampak & potongan, serta model 3D yang bisa diputar.
 
-## 🌐 Akses online
-
-Aplikasi ini otomatis di-deploy ke GitHub Pages setiap kali ada push ke branch `main`:
+## 🌐 Akses online (GitHub Pages)
 
 **https://nihtlouw.github.io/Rumah-Genset-before-after-Design-3D/**
 
-> Catatan: kalau halaman masih kosong/tidak berubah, buka tab **Actions** di repo, pastikan
-> workflow **“Deploy to GitHub Pages”** berstatus hijau, lalu refresh dengan `Ctrl+Shift+R`.
-> Pengaturan Pages: **Settings → Pages → Source: GitHub Actions**.
+Cara kerjanya: GitHub Pages repo ini memakai mode **“Deploy from a branch → main /”**, sehingga
+yang disajikan adalah `index.html` di root. File itu **hasil build siap-saji** (satu file, JS & CSS
+inline) yang di-generate dari `dev.html` + `src/`.
+
+- Setiap push ke `main`, workflow **“Deploy to GitHub Pages”** menjalankan `npm run build:pages`
+  lalu meng-commit ulang `index.html` bila ada perubahan (commit `chore(pages): rebuild index.html`).
+- Kalau `index.html` belum berubah setelah menunggu ±1 menit, buka **Actions → Deploy to GitHub Pages
+  → Run workflow** untuk memicu manual, lalu refresh dengan `Ctrl+Shift+R`.
+- (Opsional) Jika ingin memakai pipeline Actions penuh: **Settings → Pages → Source: GitHub Actions**.
+  Workflow sudah menyiapkan job deploy untuk itu.
 
 ## ✨ Isi aplikasi
 
@@ -31,27 +36,32 @@ Aplikasi ini otomatis di-deploy ke GitHub Pages setiap kali ada push ke branch `
 
 ```bash
 npm install
-npm run dev      # http://localhost:5173
-npm run build    # hasil single-file di dist/index.html
+npm run dev            # http://localhost:5173/dev.html  (entry sumber)
+npm run build          # hasil single-file: dist/dev.html
+npm run build:pages    # build + regenerate index.html di root (yang dipakai GitHub Pages)
 npm run preview
 ```
 
+> Catatan struktur: file entry Vite adalah **`dev.html`**, sedangkan **`index.html` di root adalah
+> hasil build** — jangan diedit manual, karena akan ditimpa setiap `npm run build:pages`.
+
 ### Build untuk domain sendiri
 
-Secara default `base` diset ke `/Rumah-Genset-before-after-Design-3D/` (GitHub Pages project site).
-Untuk root domain, build dengan:
+Secara default `base` diset ke `/Rumah-Genset-before-after-Design-3D/`. Aset di-inline, tapi untuk
+root domain bisa dengan:
 
 ```bash
-VITE_BASE=/ npm run build
+VITE_BASE=/ npm run build:pages
 ```
 
 ## 🚀 Deployment
 
 Workflow: [`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml)
 
-1. Push ke `main` (atau jalankan manual dari tab Actions → *Run workflow*).
-2. Workflow melakukan `npm ci` → `npm run build` → upload `dist` → deploy ke Pages.
-3. URL hasil deploy tampil di halaman run dan di **Settings → Pages**.
+| Job | Fungsi |
+| --- | --- |
+| `publish-html` | build + commit `index.html` ke `main` (dipakai mode “deploy from branch”) |
+| `build` / `deploy` | build artifact + deploy via Actions (dipakai bila Source = GitHub Actions) |
 
-Karena `vite-plugin-singlefile` dipakai, hasil build berupa satu `dist/index.html`
-(JS & CSS inline) sehingga tidak ada masalah path aset di subfolder.
+Karena `vite-plugin-singlefile` dipakai, hasil build berupa satu file HTML sehingga tidak ada
+masalah path aset di subfolder GitHub Pages.

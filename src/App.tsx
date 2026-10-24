@@ -681,6 +681,16 @@ export default function App() {
                       ? { title: selection3D.label, meta: selection3D.meta, dims: selection3D.dims.map((dim) => ({ label: dim.label, value: dim.value })) }
                       : null
                   }
+                  editorSlot={
+                    <Editor
+                      surface="dock"
+                      variant={mode}
+                      design={design}
+                      api={api}
+                      selectedId={selectedId}
+                      onSelect={setSelectedId}
+                    />
+                  }
                 />
 
                 <div className="grid gap-3 sm:grid-cols-3">

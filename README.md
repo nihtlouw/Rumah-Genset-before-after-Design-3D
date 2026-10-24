@@ -39,8 +39,14 @@ Halaman tunggal dengan enam bagian bernomor (nav di header bisa diklik):
 | 04 | Before–After | dua denah berdampingan + tabel perubahan utama |
 | 05 | Data & ukuran | rekap angka before/after, tabel kuantitas, catatan konsep & asumsi |
 
-Panel **editor ukuran** menempel di samping model 3D: bangunan utama, perluasan + atap datar,
-genset, tiang, pintu, pagar, catatan, dan aksi data.
+Panel **editor ukuran** menempel di samping model 3D dengan 8 bagian yang bisa dibuka satu per satu
+(akordeon): klik **01** untuk mengedit bangunan utama saja, **02** untuk perluasan & atap datar, dst.
+Ada chip **01–08** untuk lompat cepat, tombol **sebelumnya / berikutnya** di bawah panel, dan tombol
+**semua** bila ingin membuka seluruh bagian sekaligus.
+
+Saat model 3D dibuka **layar penuh**, panel edit ukuran ikut muncul sebagai **panel mengambang** di
+sisi kanan kanvas dan bisa disembunyikan/dimunculkan lewat tombol **editor** di header viewer,
+tombol **edit ukuran** di kanvas, atau pintasan **E**.
 
 ### 💾 Menyimpan perubahan ukuran
 
@@ -55,7 +61,7 @@ genset, tiang, pintu, pagar, catatan, dan aksi data.
 
 ### ⌨️ Pintasan
 
-`B` before · `A` after · `V` bandingkan · `1`–`6` lompat antar bagian · `Ctrl`/`Cmd + S` simpan versi.
+`B` before · `A` after · `V` bandingkan · `1`–`6` lompat antar bagian · `Ctrl`/`Cmd + S` simpan versi · `E` tampilkan/sembunyikan editor saat layar penuh.
 
 ## 🔑 Poin desain penting (AFTER)
 

@@ -34,7 +34,7 @@ Halaman tunggal dengan enam bagian bernomor (nav di header bisa diklik):
 | --- | --- | --- |
 | 00 | Ringkasan | axonometri skematik, statistik footprint/luas/atap datar, alur survey → 2D → 3D |
 | 01 | Denah & tampak | denah terukur (drag tiang/genset), toggle dimensi detail, mode bandingkan, detail elemen terpilih, cek desain otomatis, catatan lapangan, 4 tampak + potongan A-A |
-| 02 | Model 3D | 8 POV (ISO, depan, belakang, kiri, kanan, atas, iso-belakang, interior), toggle layer (ukuran, label, atap, dinding transparan, lingkungan, putar otomatis), layar penuh |
+| 02 | Model 3D | render studio gelap: grid & tapak beton bertekstur, atap spandek berprofil, rangka baja + gording, louver, genset lengkap (pondasi, panel, cerobong), label pill & garis ukur, kompas orientasi; 8 POV, toggle layer, klik elemen untuk ukuran, layar penuh |
 | 03 | Simpan & riwayat | status draf, simpan versi baru, perbarui versi aktif, daftar versi (muat, ganti nama, duplikat, unduh, hapus), ekspor/impor JSON |
 | 04 | Before–After | dua denah berdampingan + tabel perubahan utama |
 | 05 | Data & ukuran | rekap angka before/after, tabel kuantitas, catatan konsep & asumsi |

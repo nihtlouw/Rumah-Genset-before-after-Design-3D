@@ -191,6 +191,7 @@ export function NumberField({
   onChange,
   hint,
   compact = false,
+  idPrefix = '',
 }: {
   label: string;
   value: number;
@@ -201,13 +202,15 @@ export function NumberField({
   onChange: (value: number) => void;
   hint?: string;
   compact?: boolean;
+  /** hindari id ganda saat panel editor dirender dua kali (panel + dock fullscreen) */
+  idPrefix?: string;
 }) {
   const clampValue = (next: number) => {
     if (Number.isNaN(next)) return;
     onChange(Math.min(max, Math.max(min, Math.round(next))));
   };
   const safeMax = Math.max(max, min);
-  const id = `nf-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}`;
+  const id = `${idPrefix}nf-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}`;
   return (
     <div className={cn('border-b border-white/[0.06] py-2.5 last:border-b-0', compact && 'py-2')}>
       <div className="mb-1.5 flex items-center justify-between gap-3">

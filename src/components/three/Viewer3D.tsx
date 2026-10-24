@@ -3,7 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { Vector3 } from 'three';
-import { Compass, Eye, Info, Layers3, Maximize2, Minimize2, RotateCw, Ruler, Tag, X } from 'lucide-react';
+import { Compass, Eye, Info, Layers3, Maximize2, Minimize2, RotateCw, Ruler, SlidersHorizontal, Tag, X } from 'lucide-react';
 import type { Design, POV, Variant, ViewOptions } from '../../types';
 import { derive } from '../../lib/geometry';
 import { cn } from '../../utils/cn';
@@ -184,6 +184,7 @@ export function Viewer3D({
   selectedId,
   onSelect,
   selection,
+  editorSlot,
   className = '',
   extraToolbar,
 }: {
@@ -197,6 +198,8 @@ export function Viewer3D({
   selectedId?: string | null;
   onSelect?: (id: string | null) => void;
   selection?: ViewerSelection | null;
+  /** panel editor yang bisa mengambang saat layar penuh */
+  editorSlot?: ReactNode;
   className?: string;
   extraToolbar?: ReactNode;
 }) {
@@ -204,12 +207,33 @@ export function Viewer3D({
   const needleRef = useRef<HTMLDivElement>(null);
   const [full, setFull] = useState(false);
   const [ready, setReady] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(true);
 
   useEffect(() => {
-    const onChange = () => setFull(!!document.fullscreenElement);
+    const onChange = () => {
+      const isFull = !!document.fullscreenElement;
+      setFull(isFull);
+      if (isFull) setEditorOpen(true);
+    };
     document.addEventListener('fullscreenchange', onChange);
     return () => document.removeEventListener('fullscreenchange', onChange);
   }, []);
+
+  /* pintasan E untuk menyembunyikan / memunculkan editor saat layar penuh */
+  useEffect(() => {
+    if (!full) return;
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      if (event.key.toLowerCase() === 'e') {
+        event.preventDefault();
+        setEditorOpen((value) => !value);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [full]);
 
   const toggleFull = () => {
     if (document.fullscreenElement) void document.exitFullscreen?.();
@@ -270,6 +294,22 @@ export function Viewer3D({
           >
             <RotateCw size={10} className={options.autoRotate ? 'animate-spin' : ''} /> auto
           </button>
+          {full && editorSlot ? (
+            <button
+              type="button"
+              onClick={() => setEditorOpen((value) => !value)}
+              aria-pressed={editorOpen}
+              title="Tampilkan / sembunyikan panel edit ukuran (E)"
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 font-mono-tech text-[8px] uppercase tracking-[0.08em] transition',
+                editorOpen
+                  ? 'border-lime/40 bg-lime/[0.12] text-lime'
+                  : 'border-white/10 bg-white/[0.03] text-mist hover:text-white',
+              )}
+            >
+              <SlidersHorizontal size={10} /> editor
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={toggleFull}
@@ -377,9 +417,37 @@ export function Viewer3D({
           </span>
         </div>
 
+        {/* ---------------- PANEL EDITOR MENGAMBANG (layar penuh) ---------------- */}
+        {full && editorSlot ? (
+          <>
+            <div
+              className={cn(
+                'absolute bottom-3 right-3 top-3 z-30 w-[336px] max-w-[calc(100%-1.5rem)] transition-all duration-200',
+                editorOpen ? 'translate-x-0 opacity-100' : 'pointer-events-none translate-x-[calc(100%+1rem)] opacity-0',
+              )}
+            >
+              {editorSlot}
+            </div>
+            {!editorOpen ? (
+              <button
+                type="button"
+                onClick={() => setEditorOpen(true)}
+                className="absolute right-3 top-3 z-30 inline-flex items-center gap-1.5 rounded-full border border-lime/40 bg-[#0b1314]/95 px-3 py-2 font-mono-tech text-[9px] uppercase tracking-[0.08em] text-lime shadow-xl backdrop-blur transition hover:bg-lime/15"
+              >
+                <SlidersHorizontal size={11} /> edit ukuran
+              </button>
+            ) : null}
+          </>
+        ) : null}
+
         {/* kartu elemen terpilih */}
         {selection ? (
-          <div className="absolute bottom-3 right-3 z-20 w-[236px] max-w-[calc(100%-24px)] rounded-xl border border-lime/25 bg-[#0a1314]/95 p-3 shadow-2xl backdrop-blur-md">
+          <div
+            className={cn(
+              'absolute bottom-3 z-20 w-[236px] max-w-[calc(100%-24px)] rounded-xl border border-lime/25 bg-[#0a1314]/95 p-3 shadow-2xl backdrop-blur-md',
+              full && editorOpen && editorSlot ? 'left-3' : 'right-3',
+            )}
+          >
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="font-mono-tech text-[7.5px] uppercase tracking-[0.14em] text-lime">elemen terpilih</p>
@@ -407,7 +475,12 @@ export function Viewer3D({
             ) : null}
           </div>
         ) : (
-          <div className="pointer-events-none absolute bottom-3 right-3 hidden items-center gap-1.5 rounded-md border border-white/10 bg-black/40 px-2 py-1 font-mono-tech text-[8px] uppercase tracking-[0.06em] text-mist-2 backdrop-blur sm:flex">
+          <div
+            className={cn(
+              'pointer-events-none absolute bottom-3 hidden items-center gap-1.5 rounded-md border border-white/10 bg-black/40 px-2 py-1 font-mono-tech text-[8px] uppercase tracking-[0.06em] text-mist-2 backdrop-blur sm:flex',
+              full && editorOpen && editorSlot ? 'left-3' : 'right-3',
+            )}
+          >
             <Info size={9} /> klik elemen untuk ukuran
           </div>
         )}

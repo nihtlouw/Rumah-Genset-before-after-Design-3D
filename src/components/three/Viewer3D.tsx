@@ -1,9 +1,9 @@
 import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Sky, ContactShadows } from '@react-three/drei';
+import { OrbitControls } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { Vector3 } from 'three';
-import { Maximize2, Minimize2, Orbit, Move3d } from 'lucide-react';
+import { Compass, Eye, Info, Layers3, Maximize2, Minimize2, RotateCw, Ruler, Tag, X } from 'lucide-react';
 import type { Design, POV, Variant, ViewOptions } from '../../types';
 import { derive } from '../../lib/geometry';
 import { cn } from '../../utils/cn';
@@ -25,53 +25,59 @@ export const POV_LIST: { id: POV; label: string; short: string; hint: string }[]
   { id: 'interior', label: 'Interior', short: 'INTERIOR', hint: 'Berdiri di dalam ruang, dekat pintu' },
 ];
 
-function computePose(pov: POV, design: Design): { position: Vector3; target: Vector3 } {
+const TARGET_Y = (design: Design) => (design.wallHeight / 100) * 0.36;
+
+function computePose(pov: POV, design: Design, aspect = 1.6): { position: Vector3; target: Vector3 } {
   const g = derive(design);
   const W = g.totalWidth / 100;
   const D = g.depth / 100;
   const Hh = g.ridgeH / 100;
+  const dist = (Math.max(W, D, Hh) * 1.16 + 3.6) * (aspect < 1.05 ? 1.34 : 1);
+  const height = Math.max(g.ridgeH, 380) / 100;
+  const target = new Vector3(0, Math.min(1.7, TARGET_Y(design)), 0);
   const ox = g.totalWidth / 2;
   const oz = g.depth / 2;
   const X = (x: number) => (x - ox) / 100;
   const Z = (z: number) => (z - oz) / 100;
-  const dist = Math.max(W, D, Hh);
-  const c = new Vector3(0, Hh * 0.4, 0);
+
   switch (pov) {
     case 'iso':
-      return { position: new Vector3(W * 0.9 + 4.5, Hh + 4, D * 0.9 + 4.5), target: c };
+      return { position: new Vector3(dist * 0.74, height * 1.42, dist * 0.92), target };
     case 'isoBack':
-      return { position: new Vector3(-W * 0.9 - 4.5, Hh + 4, -D * 0.9 - 4.5), target: c };
+      return { position: new Vector3(-dist * 0.74, height * 1.42, -dist * 0.92), target };
     case 'front':
-      return { position: new Vector3(0, Hh * 0.55, D / 2 + dist * 1.25 + 1), target: new Vector3(0, Hh * 0.45, 0) };
+      return { position: new Vector3(0.01, height * 0.62, dist * 1.18), target };
     case 'back':
-      return { position: new Vector3(0, Hh * 0.55, -(D / 2 + dist * 1.25 + 1)), target: new Vector3(0, Hh * 0.45, 0) };
+      return { position: new Vector3(-0.01, height * 0.62, -dist * 1.18), target };
     case 'left':
-      return { position: new Vector3(-(W / 2 + dist * 1.2 + 1), Hh * 0.55, 0), target: new Vector3(0, Hh * 0.45, 0) };
+      return { position: new Vector3(-dist * 1.18, height * 0.6, 0.01), target };
     case 'right':
-      return { position: new Vector3(W / 2 + dist * 1.2 + 1, Hh * 0.55, 0), target: new Vector3(0, Hh * 0.45, 0) };
+      return { position: new Vector3(dist * 1.18, height * 0.6, -0.01), target };
     case 'top':
-      return { position: new Vector3(0, dist * 1.9 + 3, 0.02), target: new Vector3(0, 0, 0) };
+      return { position: new Vector3(0.02, dist * 1.4, 0.9), target: new Vector3(0, 0.2, 0) };
     case 'interior': {
       const dr = design.door;
       let pos: Vector3;
-      if (dr.wall === 'front') pos = new Vector3(X(dr.offset + dr.width / 2), 1.6, Z(design.depth) - 0.7);
-      else if (dr.wall === 'back') pos = new Vector3(X(dr.offset + dr.width / 2), 1.6, Z(0) + 0.7);
-      else if (dr.wall === 'left') pos = new Vector3(X(0) + 0.7, 1.6, Z(dr.offset + dr.width / 2));
-      else pos = new Vector3(X(g.totalWidth) - 0.7, 1.6, Z(dr.offset + dr.width / 2));
-      // target dekat kamera supaya drag = menoleh (look-around), bukan mengorbit jauh
-      const dir = new Vector3(0, 1.3, 0).sub(pos).normalize();
-      return { position: pos, target: pos.clone().add(dir.multiplyScalar(2.5)) };
+      if (dr.wall === 'front') pos = new Vector3(X(dr.offset + dr.width / 2), 1.62, Z(design.depth) - 0.62);
+      else if (dr.wall === 'back') pos = new Vector3(X(dr.offset + dr.width / 2), 1.62, Z(0) + 0.62);
+      else if (dr.wall === 'left') pos = new Vector3(X(0) + 0.62, 1.62, Z(dr.offset + dr.width / 2));
+      else pos = new Vector3(X(g.totalWidth) - 0.62, 1.62, Z(dr.offset + dr.width / 2));
+      const dir = new Vector3(0, 1.32, 0).sub(pos).normalize();
+      return { position: pos, target: pos.clone().add(dir.multiplyScalar(2.4)) };
     }
+    default:
+      return { position: new Vector3(dist * 0.74, height * 1.42, dist * 0.92), target };
   }
 }
 
 function CameraRig({ request, design, autoRotate }: { request: PovRequest; design: Design; autoRotate: boolean }) {
   const controls = useRef<OrbitControlsImpl>(null);
   const goal = useRef<{ position: Vector3; target: Vector3 } | null>(null);
-  const { camera } = useThree();
+  const { camera, size } = useThree();
   const lastN = useRef(-1);
+  const aspect = size.width / Math.max(size.height, 1);
 
-  const pose = useMemo(() => computePose(request.pov, design), [request.pov, design]);
+  const pose = useMemo(() => computePose(request.pov, design, aspect), [request.pov, design, aspect]);
 
   useEffect(() => {
     if (request.n !== lastN.current) {
@@ -80,7 +86,6 @@ function CameraRig({ request, design, autoRotate }: { request: PovRequest; desig
     }
   }, [pose, request.n]);
 
-  // initial placement
   useEffect(() => {
     camera.position.copy(pose.position);
     if (controls.current) {
@@ -91,16 +96,16 @@ function CameraRig({ request, design, autoRotate }: { request: PovRequest; desig
   }, []);
 
   useFrame((_, dt) => {
-    const gl = goal.current;
+    const next = goal.current;
     const ctl = controls.current;
-    if (!gl || !ctl) return;
-    const k = 1 - Math.pow(0.0005, dt);
-    camera.position.lerp(gl.position, k);
-    ctl.target.lerp(gl.target, k);
+    if (!next || !ctl) return;
+    const k = 1 - Math.pow(0.0018, Math.min(dt, 0.08));
+    camera.position.lerp(next.position, k);
+    ctl.target.lerp(next.target, k);
     ctl.update();
-    if (camera.position.distanceTo(gl.position) < 0.01 && ctl.target.distanceTo(gl.target) < 0.01) {
-      camera.position.copy(gl.position);
-      ctl.target.copy(gl.target);
+    if (camera.position.distanceTo(next.position) < 0.02 && ctl.target.distanceTo(next.target) < 0.02) {
+      camera.position.copy(next.position);
+      ctl.target.copy(next.target);
       goal.current = null;
     }
   });
@@ -110,17 +115,62 @@ function CameraRig({ request, design, autoRotate }: { request: PovRequest; desig
       ref={controls}
       makeDefault
       enableDamping
-      dampingFactor={0.08}
-      minDistance={0.4}
-      maxDistance={80}
-      maxPolarAngle={Math.PI / 2 - 0.01}
+      dampingFactor={0.075}
+      minDistance={0.6}
+      maxDistance={42}
+      minPolarAngle={0.06}
+      maxPolarAngle={Math.PI / 2.04}
       autoRotate={autoRotate}
-      autoRotateSpeed={0.8}
+      autoRotateSpeed={0.62}
+      target={[0, Math.min(1.7, TARGET_Y(design)), 0]}
       onStart={() => {
         goal.current = null;
       }}
     />
   );
+}
+
+/** Kompas di overlay HTML; jarum mengikuti azimuth kamera. */
+function CompassSync({ needleRef }: { needleRef: React.RefObject<HTMLDivElement | null> }) {
+  useFrame(({ camera }) => {
+    if (!needleRef.current) return;
+    const azimuth = Math.atan2(camera.position.x, camera.position.z);
+    needleRef.current.style.transform = `rotate(${azimuth}rad)`;
+  });
+  return null;
+}
+
+function StudioLights() {
+  return (
+    <>
+      <hemisphereLight args={['#d9f0f4', '#141c1a', 0.82]} />
+      <ambientLight intensity={0.32} />
+      <directionalLight
+        position={[8.5, 12.5, 7.5]}
+        intensity={2.35}
+        color="#fff4dd"
+        castShadow
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+        shadow-camera-left={-14}
+        shadow-camera-right={14}
+        shadow-camera-top={14}
+        shadow-camera-bottom={-14}
+        shadow-camera-near={0.5}
+        shadow-camera-far={48}
+        shadow-bias={-0.0004}
+      />
+      <directionalLight position={[-9, 6.5, -7]} intensity={0.85} color="#9ed9e4" />
+      <directionalLight position={[0, 4, 11]} intensity={0.34} color="#e8f0db" />
+      <spotLight position={[-6.5, 9, 8.5]} angle={0.8} penumbra={1} intensity={12} color="#e8f2da" distance={26} />
+    </>
+  );
+}
+
+export interface ViewerSelection {
+  title: string;
+  meta: string;
+  dims?: { label: string; value: string }[];
 }
 
 export function Viewer3D({
@@ -129,19 +179,31 @@ export function Viewer3D({
   request,
   mode,
   onPov,
-  extraToolbar,
+  onToggle,
+  onReset,
+  selectedId,
+  onSelect,
+  selection,
   className = '',
+  extraToolbar,
 }: {
   design: Design;
   options: ViewOptions;
   request: PovRequest;
   mode: Variant;
   onPov?: (pov: POV) => void;
-  extraToolbar?: ReactNode;
+  onToggle?: (key: keyof ViewOptions) => void;
+  onReset?: () => void;
+  selectedId?: string | null;
+  onSelect?: (id: string | null) => void;
+  selection?: ViewerSelection | null;
   className?: string;
+  extraToolbar?: ReactNode;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
+  const needleRef = useRef<HTMLDivElement>(null);
   const [full, setFull] = useState(false);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     const onChange = () => setFull(!!document.fullscreenElement);
@@ -155,36 +217,59 @@ export function Viewer3D({
   };
 
   const activePov = POV_LIST.find((item) => item.id === request.pov) ?? POV_LIST[0];
+  const g = derive(design);
+
+  const toggles: { key: keyof ViewOptions; label: string; icon: ReactNode }[] = [
+    { key: 'showDimensions', label: 'Ukuran', icon: <Ruler size={11} /> },
+    { key: 'showLabels', label: 'Label', icon: <Tag size={11} /> },
+    { key: 'showRoof', label: options.showRoof ? 'Atap tertutup' : 'Atap dibuka', icon: <Layers3 size={11} /> },
+    { key: 'transparentWalls', label: 'Dinding transparan', icon: <Eye size={11} /> },
+    { key: 'showContext', label: 'Lingkungan', icon: <Layers3 size={11} /> },
+  ];
 
   return (
     <div
       ref={wrapRef}
       className={cn(
-        'relative overflow-hidden rounded-2xl border border-white/10 bg-[#0d1517] shadow-[0_30px_80px_-55px_rgba(0,0,0,1)]',
-        full && 'flex h-screen w-screen flex-col justify-center rounded-none border-0',
+        'relative overflow-hidden rounded-2xl border border-white/10 bg-[#0b1214] shadow-[0_30px_80px_-55px_rgba(0,0,0,1)]',
+        full && 'flex h-screen w-screen flex-col rounded-none border-0 bg-ink',
         className,
       )}
     >
-      {/* chrome atas */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.08] px-4 py-3">
-        <div className="flex items-center gap-2">
-          <span className="flex h-6 w-6 items-center justify-center rounded border border-white/10 bg-white/[0.04] text-lime">
-            <Orbit size={12} />
+      {/* ---------------- CHROME ATAS ---------------- */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.07] px-3.5 py-2.5">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-6 w-6 items-center justify-center rounded-md border border-lime/25 bg-lime/10 text-lime">
+            <Compass size={12} />
           </span>
           <div>
-            <p className="font-mono-tech text-[8px] uppercase tracking-[0.12em] text-mist-2">
-              Model 3D · {mode === 'before' ? 'existing' : 'usulan'}
-            </p>
-            <p className="text-[11px] font-medium text-[#dfe7db]">
-              {activePov.label}
-              <span className="ml-1.5 font-mono-tech text-[9px] font-normal text-mist-2">/ {activePov.hint}</span>
+            <p className="font-mono-tech text-[8px] uppercase tracking-[0.16em] text-mist-2">interactive model</p>
+            <p className="text-[11.5px] font-medium text-[#dfe7de]">
+              {mode === 'before' ? 'Eksisting / Before' : 'Usulan / After'} · skala 1:1
             </p>
           </div>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="hidden items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.02] px-2.5 py-1 font-mono-tech text-[8px] uppercase tracking-[0.08em] text-mist-2 sm:inline-flex">
-            <Move3d size={10} /> drag orbit · scroll zoom
-          </span>
+          <button
+            type="button"
+            onClick={() => onPov?.('iso')}
+            className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1.5 font-mono-tech text-[8px] uppercase tracking-[0.08em] text-mist transition hover:border-lime/40 hover:text-lime"
+          >
+            <Compass size={10} /> reset view
+          </button>
+          <button
+            type="button"
+            onClick={() => onToggle?.('autoRotate')}
+            aria-pressed={options.autoRotate}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 font-mono-tech text-[8px] uppercase tracking-[0.08em] transition',
+              options.autoRotate
+                ? 'border-steel/50 bg-steel/10 text-steel'
+                : 'border-white/10 bg-white/[0.03] text-mist hover:text-white',
+            )}
+          >
+            <RotateCw size={10} className={options.autoRotate ? 'animate-spin' : ''} /> auto
+          </button>
           <button
             type="button"
             onClick={toggleFull}
@@ -197,68 +282,170 @@ export function Viewer3D({
         </div>
       </div>
 
-      {/* kanvas */}
-      <div className={cn('relative', full ? 'min-h-0 flex-1' : 'h-[360px] sm:h-[460px] xl:h-[520px]')}>
-        <Canvas
-          shadows
-          dpr={[1, 1.75]}
-          camera={{ position: [12, 9, 12], fov: 45, near: 0.05, far: 600 }}
-          gl={{ antialias: true, preserveDrawingBuffer: true }}
-        >
-          <Suspense fallback={null}>
-            <Sky sunPosition={[40, 50, 20]} turbidity={6} rayleigh={1.2} distance={400} />
-            <ambientLight intensity={0.7} />
-            <hemisphereLight args={['#dbeafe', '#8a8f7a', 0.6]} />
-            <directionalLight
-              position={[14, 20, 10]}
-              intensity={2.2}
-              castShadow
-              shadow-mapSize={[2048, 2048]}
-              shadow-camera-left={-18}
-              shadow-camera-right={18}
-              shadow-camera-top={18}
-              shadow-camera-bottom={-18}
-              shadow-camera-near={1}
-              shadow-camera-far={80}
-              shadow-bias={-0.0004}
-            />
-            <Context design={design} show={options.showContext} />
-            <Building design={design} options={options} />
-            <ContactShadows position={[0, -0.1, 0]} opacity={0.35} scale={30} blur={2.2} far={6} />
-            <CameraRig request={request} design={design} autoRotate={options.autoRotate} />
-          </Suspense>
-        </Canvas>
-
-        {/* watermark skala */}
-        <div className="pointer-events-none absolute bottom-2.5 left-3 rounded border border-black/10 bg-white/80 px-1.5 py-0.5 font-mono-tech text-[8px] uppercase tracking-[0.08em] text-[#3c4a44] backdrop-blur">
-          {design.width} × {design.depth} cm · ridge {Math.round(derive(design).ridgeH)}
-        </div>
-      </div>
-
-      {/* strip POV */}
-      <div className="flex items-center gap-1.5 overflow-x-auto border-t border-white/[0.08] bg-[#0b1214] px-3 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <span className="shrink-0 pr-1 font-mono-tech text-[8px] uppercase tracking-[0.1em] text-mist-2">POV</span>
-        {POV_LIST.map((item) => (
+      {/* ---------------- STRIP POV ---------------- */}
+      <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto border-b border-white/[0.07] px-3 py-2">
+        <span className="mr-1 hidden shrink-0 font-mono-tech text-[8px] uppercase tracking-[0.14em] text-mist-2 sm:inline">
+          POV
+        </span>
+        {POV_LIST.map((item, index) => (
           <button
             key={item.id}
             type="button"
             title={item.hint}
+            aria-pressed={request.pov === item.id}
             onClick={() => onPov?.(item.id)}
             className={cn(
-              'shrink-0 rounded-full border px-2.5 py-1.5 font-mono-tech text-[8.5px] uppercase tracking-[0.08em] transition',
+              'shrink-0 rounded-full border px-2.5 py-1.5 font-mono-tech text-[8.5px] uppercase tracking-[0.07em] transition',
               request.pov === item.id
-                ? 'border-lime/40 bg-lime text-ink'
-                : 'border-white/10 bg-white/[0.02] text-mist hover:border-white/25 hover:text-white',
+                ? 'border-lime/60 bg-lime/[0.13] text-lime'
+                : 'border-transparent text-mist-2 hover:border-white/10 hover:bg-white/[0.04] hover:text-white',
             )}
           >
+            <span className="mr-1.5 opacity-45">{String(index + 1).padStart(2, '0')}</span>
             {item.short}
           </button>
         ))}
+        <span className="ml-auto hidden shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-black/30 px-2 py-1 font-mono-tech text-[8px] uppercase tracking-[0.06em] text-mist-2 sm:inline-flex">
+          <Eye size={9} /> drag orbit · scroll zoom
+        </span>
       </div>
 
-      {extraToolbar && (
-        <div className="border-t border-white/[0.08] bg-[#0d1517] px-3 py-2.5">{extraToolbar}</div>
-      )}
+      {/* ---------------- KANVAS ---------------- */}
+      <div
+        className={cn(
+          'relative w-full bg-[radial-gradient(ellipse_at_55%_18%,#1b2b2b_0%,#0d1618_46%,#080e10_100%)]',
+          full ? 'min-h-0 flex-1' : 'h-[380px] sm:h-[470px] xl:h-[540px]',
+        )}
+      >
+        <Canvas
+          shadows
+          dpr={[1, 1.8]}
+          gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+          camera={{ position: [9, 7, 10], fov: 38, near: 0.1, far: 140 }}
+          onCreated={() => setReady(true)}
+          onPointerMissed={() => onSelect?.(null)}
+        >
+          <Suspense fallback={null}>
+            <StudioLights />
+            <CameraRig request={request} design={design} autoRotate={options.autoRotate} />
+            <CompassSync needleRef={needleRef} />
+            <Context design={design} show={options.showContext} />
+            <Building design={design} options={options} selectedId={selectedId ?? null} onSelect={onSelect} />
+          </Suspense>
+        </Canvas>
+
+        {!ready && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#0b1315]">
+            <div className="flex items-center gap-2.5 font-mono-tech text-[9px] uppercase tracking-[0.14em] text-mist">
+              <span className="h-3 w-3 animate-spin rounded-full border border-lime/30 border-t-lime" />
+              menyiapkan model 3d
+            </div>
+          </div>
+        )}
+
+        {/* badge kiri atas */}
+        <div className="pointer-events-none absolute left-3 top-3 flex flex-wrap items-center gap-1.5">
+          <span className="rounded-md border border-white/10 bg-black/45 px-2 py-1 font-mono-tech text-[8px] uppercase tracking-[0.1em] text-mist backdrop-blur">
+            {mode === 'before' ? 'existing' : 'proposed'} · 3d
+          </span>
+          <span className="rounded-md border border-lime/25 bg-lime/[0.09] px-2 py-1 font-mono-tech text-[8px] uppercase tracking-[0.1em] text-lime backdrop-blur">
+            pov {activePov.short}
+          </span>
+        </div>
+
+        {/* kompas */}
+        <div className="pointer-events-none absolute right-3 top-3 flex flex-col items-center gap-1">
+          <div className="relative flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/40 backdrop-blur">
+            <div ref={needleRef} className="absolute inset-0">
+              <svg viewBox="0 0 44 44" className="h-full w-full">
+                <path d="M22 6 L26 22 L22 19 L18 22 Z" fill="#c6f75c" />
+                <path d="M22 38 L18 22 L22 25 L26 22 Z" fill="#93a3a3" opacity="0.5" />
+              </svg>
+            </div>
+            <span className="absolute -top-1 font-mono-tech text-[7px] text-mist-2">N</span>
+          </div>
+          <span className="font-mono-tech text-[7.5px] uppercase tracking-[0.1em] text-mist-2">orientasi</span>
+        </div>
+
+        {/* skala */}
+        <div className="pointer-events-none absolute bottom-3 left-3 flex flex-col gap-1">
+          <span className="rounded-md border border-white/10 bg-black/45 px-2 py-1 font-mono-tech text-[8px] uppercase tracking-[0.08em] text-mist-2 backdrop-blur">
+            {g.totalWidth} × {g.depth} cm · ridge {g.ridgeH}
+          </span>
+          <span className="hidden rounded-md border border-white/10 bg-black/45 px-2 py-1 font-mono-tech text-[8px] uppercase tracking-[0.06em] text-mist-2 backdrop-blur sm:inline">
+            render skematik · bukan gambar kerja
+          </span>
+        </div>
+
+        {/* kartu elemen terpilih */}
+        {selection ? (
+          <div className="absolute bottom-3 right-3 z-20 w-[236px] max-w-[calc(100%-24px)] rounded-xl border border-lime/25 bg-[#0a1314]/95 p-3 shadow-2xl backdrop-blur-md">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="font-mono-tech text-[7.5px] uppercase tracking-[0.14em] text-lime">elemen terpilih</p>
+                <p className="mt-1 truncate text-[12px] font-medium leading-tight text-[#eaf0e5]">{selection.title}</p>
+                <p className="mt-0.5 font-mono-tech text-[8.5px] leading-relaxed text-mist-2">{selection.meta}</p>
+              </div>
+              <button
+                type="button"
+                aria-label="Tutup detail"
+                onClick={() => onSelect?.(null)}
+                className="rounded-full p-1 text-mist-2 transition hover:bg-white/10 hover:text-white"
+              >
+                <X size={11} />
+              </button>
+            </div>
+            {selection.dims?.length ? (
+              <div className="mt-2 space-y-1 border-t border-white/[0.08] pt-2">
+                {selection.dims.slice(0, 4).map((dim) => (
+                  <div key={dim.label} className="flex items-baseline justify-between gap-2">
+                    <span className="text-[9px] text-mist-2">{dim.label}</span>
+                    <span className="font-mono-tech text-[9px] text-[#dce6d8]">{dim.value}</span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <div className="pointer-events-none absolute bottom-3 right-3 hidden items-center gap-1.5 rounded-md border border-white/10 bg-black/40 px-2 py-1 font-mono-tech text-[8px] uppercase tracking-[0.06em] text-mist-2 backdrop-blur sm:flex">
+            <Info size={9} /> klik elemen untuk ukuran
+          </div>
+        )}
+      </div>
+
+      {/* ---------------- FOOTER TOGGLE ---------------- */}
+      <div className="flex flex-wrap items-center gap-1.5 border-t border-white/[0.07] px-3 py-2.5">
+        {toggles.map((toggle) => (
+          <button
+            key={toggle.key}
+            type="button"
+            aria-pressed={options[toggle.key]}
+            onClick={() => onToggle?.(toggle.key)}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 font-mono-tech text-[8.5px] uppercase tracking-[0.06em] transition',
+              options[toggle.key]
+                ? 'border-lime/30 bg-lime/[0.08] text-lime'
+                : 'border-white/10 bg-white/[0.02] text-mist-2 hover:text-white',
+            )}
+          >
+            {toggle.icon}
+            {toggle.label}
+          </button>
+        ))}
+        {onReset && (
+          <button
+            type="button"
+            onClick={onReset}
+            className="rounded-full border border-white/10 px-2.5 py-1.5 font-mono-tech text-[8.5px] uppercase tracking-[0.06em] text-mist-2 transition hover:border-lime/40 hover:text-lime"
+          >
+            ↺ reset tampilan
+          </button>
+        )}
+        <span className="ml-auto hidden font-mono-tech text-[8px] uppercase tracking-[0.06em] text-mist-2 lg:inline">
+          {design.gensets.length} zona genset · eave {design.wallHeight} · ridge +{design.roofRise}
+        </span>
+        {extraToolbar ? <div className="w-full">{extraToolbar}</div> : null}
+      </div>
     </div>
   );
 }

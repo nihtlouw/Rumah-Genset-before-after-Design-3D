@@ -127,8 +127,90 @@ export default function App() {
         ],
       } as const;
     }
+
+    /* elemen semu: dipilih langsung dari model 3D */
+    const pseudo: Record<string, { kicker: string; label: string; meta: string; dims: { label: string; value: string }[] }> = {
+      roof: {
+        kicker: 'Atap pelana',
+        label: 'Atap utama',
+        meta: `rangka baja · kemiringan ${g.pitchDeg.toFixed(1)}° · tritisan ${design.overhang} cm`,
+        dims: [
+          { label: 'Bubungan', value: `${g.ridgeH} cm` },
+          { label: 'Eave', value: `${Math.round(g.eaveH)} cm` },
+          { label: 'Bentang + tritisan', value: `${design.width + design.overhang * 2} cm` },
+          { label: 'Luas atap', value: m2(g.roofArea) },
+        ],
+      },
+      canopy: {
+        kicker: 'Atap datar',
+        label: 'Atap perluasan',
+        meta: g.canopy ? `datar t ${Math.round(g.canopy.y)} cm · lebar ${Math.round(g.canopy.len)} cm` : 'tidak aktif',
+        dims: [
+          { label: 'Tinggi', value: `${Math.round(g.canopy?.y ?? 0)} cm` },
+          { label: 'Lebar', value: `${Math.round(g.canopy?.len ?? 0)} cm` },
+          { label: 'Luas', value: m2(g.canopy?.area ?? 0) },
+          { label: 'Selisih ke eave', value: `${Math.round(g.eaveH - (g.canopy?.y ?? 0))} cm` },
+        ],
+      },
+      walls: {
+        kicker: 'Selubung',
+        label: 'Dinding & ventilasi',
+        meta: `${MATERIAL_LABEL[design.wallMaterial]} · ${design.extension.enabled ? `perluasan ${MATERIAL_LABEL[design.extension.material]}` : 'tanpa perluasan'}`,
+        dims: [
+          { label: 'Tinggi dinding', value: `${design.wallHeight} cm` },
+          { label: 'Luas dinding', value: m2(g.wallArea) },
+          { label: 'Panel', value: `${g.walls.length} bidang` },
+          { label: 'Tinggi perluasan', value: `${Math.round(g.canopy?.wallH ?? g.wallH)} cm` },
+        ],
+      },
+      door: {
+        kicker: 'Akses',
+        label: 'Pintu servis',
+        meta: `dinding ${design.door.wall} · digeser ${design.door.offset} cm`,
+        dims: [
+          { label: 'Lebar', value: `${design.door.width} cm` },
+          { label: 'Tinggi', value: `${design.door.height} cm` },
+          { label: 'Posisi', value: `${design.door.offset} cm` },
+          { label: 'Ambang', value: 'rata lantai' },
+        ],
+      },
+      fence: {
+        kicker: 'Batas',
+        label: 'Pagar BRC',
+        meta: design.fence.visible ? `sisi kiri · jarak ${design.fence.gap} cm` : 'disembunyikan',
+        dims: [
+          { label: 'Tinggi', value: `${design.fence.height} cm` },
+          { label: 'Jarak ke dinding', value: `${design.fence.gap} cm` },
+          { label: 'Panjang', value: `${design.depth} cm` },
+          { label: 'Status', value: design.fence.visible ? 'tampil' : 'nonaktif' },
+        ],
+      },
+      site: {
+        kicker: 'Tapak',
+        label: 'Lahan & slab',
+        meta: `footprint ${g.totalWidth} × ${g.depth} cm`,
+        dims: [
+          { label: 'Luas lantai', value: m2(g.floorArea) },
+          { label: 'Luas perluasan', value: m2(g.addedArea) },
+          { label: 'Volume pondasi', value: `${g.foundationVolume.toFixed(2)} m³` },
+          { label: 'Jumlah tiang', value: `${design.columns.length} bh` },
+        ],
+      },
+    };
+    const hit = pseudo[selectedId];
+    if (hit) {
+      return {
+        tone: 'lime',
+        kicker: hit.kicker,
+        label: hit.label,
+        meta: hit.meta,
+        dims: hit.dims,
+      } as const;
+    }
     return null;
   }, [selectedId, design, g]);
+
+  const selection3D = selection;
 
   const goPov = (next: POV) => setPov((request) => ({ pov: next, n: request.n + 1 }));
   const toggleOpt = (key: keyof ViewOptions) => setOpts((options) => ({ ...options, [key]: !options[key] }));
@@ -587,46 +669,17 @@ export default function App() {
                   request={pov}
                   mode={mode}
                   onPov={goPov}
-                  extraToolbar={
-                    <div className="flex flex-wrap items-center gap-1">
-                      {(
-                        [
-                          ['showDimensions', 'Ukuran', 'Garis ukur 3D'],
-                          ['showLabels', 'Label', 'Nama tiang & genset'],
-                          ['showRoof', 'Atap', 'Sembunyikan atap untuk melihat rangka'],
-                          ['transparentWalls', 'Dinding transparan', 'Lihat genset di balik dinding'],
-                          ['showContext', 'Lingkungan', 'Gedung & taman sekitar'],
-                          ['autoRotate', 'Putar otomatis', 'Kamera berputar pelan'],
-                        ] as [keyof ViewOptions, string, string][]
-                      ).map(([key, label, hint]) => (
-                        <button
-                          key={key}
-                          type="button"
-                          title={hint}
-                          onClick={() => toggleOpt(key)}
-                          className={cn(
-                            'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 font-mono-tech text-[9px] uppercase tracking-[0.07em] transition',
-                            opts[key]
-                              ? 'border-lime/30 bg-lime/[0.08] text-lime'
-                              : 'border-white/10 bg-white/[0.02] text-mist-2 hover:text-white',
-                          )}
-                        >
-                          {opts[key] ? '✓ ' : ''}
-                          {label}
-                        </button>
-                      ))}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setOpts(DEFAULT_OPTS);
-                          goPov('iso');
-                        }}
-                        className="rounded-full border border-white/10 px-2.5 py-1.5 font-mono-tech text-[9px] uppercase tracking-[0.07em] text-mist-2 transition hover:border-lime/40 hover:text-lime"
-                        title="Kembalikan tampilan ke awal"
-                      >
-                        ↺ reset tampilan
-                      </button>
-                    </div>
+                  onToggle={toggleOpt}
+                  onReset={() => {
+                    setOpts(DEFAULT_OPTS);
+                    goPov('iso');
+                  }}
+                  selectedId={selectedId}
+                  onSelect={setSelectedId}
+                  selection={
+                    selection3D
+                      ? { title: selection3D.label, meta: selection3D.meta, dims: selection3D.dims.map((dim) => ({ label: dim.label, value: dim.value })) }
+                      : null
                   }
                 />
 

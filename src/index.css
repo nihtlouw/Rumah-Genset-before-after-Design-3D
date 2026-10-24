@@ -1,1 +1,234 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
+
+/* ------------------------------------------------------------------ */
+/* Design tokens — studio gelap (referensi: Rumah-Genset-…-v2)         */
+/* ------------------------------------------------------------------ */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --color-ink: #070c0d;
+  --color-void: #0a1012;
+  --color-panel: #10181a;
+  --color-panel-2: #141e20;
+  --color-line: #253135;
+  --color-line-soft: #1a2528;
+  --color-paper: #ecece2;
+  --color-paper-2: #e2e3d7;
+  --color-paperink: #202a27;
+  --color-lime: #c6f75c;
+  --color-lime-deep: #a2d636;
+  --color-steel: #7ec8d8;
+  --color-amber: #f2a65a;
+  --color-rust: #e2765a;
+  --color-mist: #93a3a3;
+  --color-mist-2: #748685;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    margin: 0;
+    background: var(--color-ink);
+    color: #edf2ea;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  ::selection {
+    background: var(--color-lime);
+    color: #0a1012;
+  }
+  button {
+    cursor: pointer;
+  }
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 99px;
+    background: #2b393c;
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 14px;
+    width: 14px;
+    border-radius: 50%;
+    background: var(--color-lime);
+    border: 3px solid #14211a;
+    box-shadow: 0 0 0 1px var(--color-lime);
+    cursor: ew-resize;
+    transition: transform 0.15s ease;
+  }
+  input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.18);
+  }
+  input[type="range"]::-moz-range-thumb {
+    height: 12px;
+    width: 12px;
+    border-radius: 50%;
+    background: var(--color-lime);
+    border: 2px solid #14211a;
+    cursor: ew-resize;
+  }
+  /* scrollbar gelap */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0a1012;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #253135;
+    border-radius: 99px;
+    border: 2px solid #0a1012;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #35464a;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+  }
+  .font-mono-tech {
+    font-family: var(--font-mono);
+    font-feature-settings: "tnum" 1;
+  }
+  .tech-grid {
+    background-image:
+      linear-gradient(to right, rgba(198, 247, 92, 0.045) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(198, 247, 92, 0.045) 1px, transparent 1px);
+    background-size: 42px 42px;
+  }
+  .dot-grid {
+    background-image: radial-gradient(rgba(32, 42, 39, 0.22) 0.8px, transparent 0.8px);
+    background-size: 12px 12px;
+  }
+  .paper-lines {
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 31px,
+      rgba(32, 42, 39, 0.08) 32px
+    );
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .hairline {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+  }
+  .glow-lime {
+    box-shadow: 0 0 0 1px rgba(198, 247, 92, 0.28), 0 12px 50px -20px rgba(198, 247, 92, 0.4);
+  }
+  .section-anchor {
+    scroll-margin-top: 84px;
+  }
+  .label-xs {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    line-height: 1;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Latar halus: glow lime + steel di atas */
+.app-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(198, 247, 92, 0.07), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 100% 20%, rgba(126, 200, 216, 0.05), transparent 60%);
+}
+
+/* Animasi masuk kecil untuk panel/daftar */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.rise-in {
+  animation: rise-in 0.28s ease-out both;
+}
+
+/* Fokus keyboard yang jelas di atas tema gelap */
+:focus-visible {
+  outline: 2px solid rgba(198, 247, 92, 0.65);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  html,
+  body,
+  .app-shell {
+    background: #070c0d !important;
+  }
+  body {
+    overflow: visible;
+  }
+  .app-shell::before {
+    display: none;
+  }
+  header {
+    position: static !important;
+  }
+  .section-anchor {
+    scroll-margin-top: 0;
+  }
+  section {
+    break-inside: avoid;
+    padding-top: 14px !important;
+    padding-bottom: 14px !important;
+  }
+  .xl\:sticky {
+    position: static !important;
+  }
+}

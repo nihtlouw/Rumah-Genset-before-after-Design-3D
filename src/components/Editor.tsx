@@ -745,7 +745,7 @@ export function Editor({
         'flex flex-col overflow-hidden border border-white/10 bg-[#0e1618]/95',
         isDock
           ? 'h-full max-h-full rounded-xl shadow-[0_30px_80px_-30px_rgba(0,0,0,1)] backdrop-blur-xl'
-          : 'no-scrollbar max-h-[76vh] overflow-y-auto rounded-2xl xl:max-h-[calc(100vh-7rem)]',
+          : 'max-h-[76vh] rounded-2xl xl:max-h-[calc(100vh-7rem)]',
       )}
     >
       {/* header panel */}
@@ -836,7 +836,7 @@ export function Editor({
       </div>
 
       {/* daftar bagian — hanya yang dipilih yang terbuka */}
-      <div className={cn('min-h-0 flex-1 overflow-y-auto no-scrollbar', !isDock && 'contents')}>
+      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain">
         {sections.map((section, index) => (
           <SectionShell
             key={section.id}

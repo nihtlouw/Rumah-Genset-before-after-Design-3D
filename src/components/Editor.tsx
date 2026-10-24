@@ -1,72 +1,48 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Download, Minus, PencilRuler, Plus, Trash2, Upload } from 'lucide-react';
 import type { Design, Variant, WallMaterial, WallSide } from '../types';
 import type { DesignsApi } from '../hooks/useDesigns';
 import { MATERIAL_LABEL } from '../data/defaults';
 import { derive } from '../lib/geometry';
+import { NumberField, ResetButton, ToggleRow } from './ui';
+import { cn } from '../utils/cn';
 
-function NumField({
-  label,
-  value,
-  onChange,
-  min = 0,
-  max = 5000,
-  step = 5,
-  unit = 'cm',
-  className = '',
-}: {
-  label: string;
-  value: number;
-  onChange: (v: number) => void;
-  min?: number;
-  max?: number;
-  step?: number;
-  unit?: string;
-  className?: string;
-}) {
+/* ------------------------------------------------------------------ */
+/* Bagian bertingkat                                                  */
+/* ------------------------------------------------------------------ */
+function SectionLabel({ index, title, action }: { index: string; title: string; action?: React.ReactNode }) {
   return (
-    <label className={`flex flex-col gap-0.5 ${className}`}>
-      <span className="text-[11px] uppercase tracking-wide text-slate-500">{label}</span>
-      <span className="flex items-center rounded-md border border-slate-300 bg-white focus-within:ring-2 focus-within:ring-blue-500">
-        <input
-          type="number"
-          value={value}
-          min={min}
-          max={max}
-          step={step}
-          onChange={(e) => {
-            const v = Number(e.target.value);
-            if (!Number.isNaN(v)) onChange(v);
-          }}
-          className="w-full min-w-0 bg-transparent px-2 py-1.5 text-sm font-mono text-slate-900 outline-none"
-        />
-        <span className="pr-2 text-[11px] text-slate-400">{unit}</span>
-      </span>
-    </label>
+    <div className="sticky top-[53px] z-[1] flex items-center gap-2 bg-[#0e1618]/95 pb-1 pt-4 backdrop-blur">
+      <span className="font-mono-tech text-[9px] text-lime/70">{index}</span>
+      <span className="h-px flex-1 bg-white/10" />
+      <span className="font-mono-tech text-[9px] uppercase tracking-[0.12em] text-mist-2">{title}</span>
+      {action}
+    </div>
   );
 }
 
-function SelectField<T extends string>({
+function Select({
   label,
   value,
   options,
   onChange,
 }: {
   label: string;
-  value: T;
-  options: { value: T; label: string }[];
-  onChange: (v: T) => void;
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (value: string) => void;
 }) {
   return (
-    <label className="flex flex-col gap-0.5">
-      <span className="text-[11px] uppercase tracking-wide text-slate-500">{label}</span>
+    <label className="flex flex-col gap-1 border-b border-white/[0.06] py-2.5">
+      <span className="text-[11px] font-medium text-[#c5cfc8]">{label}</span>
       <select
         value={value}
-        onChange={(e) => onChange(e.target.value as T)}
-        className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-blue-500"
+        onChange={(event) => onChange(event.target.value)}
+        className="rounded-md border border-white/10 bg-black/40 px-2 py-1.5 text-[11px] text-white outline-none transition focus:border-lime/60 focus:ring-1 focus:ring-lime/20"
       >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
+        {options.map((option) => (
+          <option key={option.value} value={option.value} className="bg-[#10181a] text-white">
+            {option.label}
           </option>
         ))}
       </select>
@@ -74,40 +50,14 @@ function SelectField<T extends string>({
   );
 }
 
-function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <button
-      type="button"
-      onClick={() => onChange(!checked)}
-      className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
-    >
-      <span>{label}</span>
-      <span className={`relative inline-flex h-5 w-9 items-center rounded-full transition ${checked ? 'bg-blue-600' : 'bg-slate-300'}`}>
-        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition ${checked ? 'translate-x-4' : 'translate-x-0.5'}`} />
-      </span>
-    </button>
-  );
-}
+const ICON_INPUT =
+  'rounded-md border border-white/10 bg-black/40 px-1.5 py-1 text-right font-mono-tech text-[10px] text-white outline-none transition focus:border-lime/60 focus:ring-1 focus:ring-lime/20';
 
-function Section({ title, badge, children, defaultOpen = true }: { title: string; badge?: string; children: React.ReactNode; defaultOpen?: boolean }) {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50/60">
-      <button type="button" onClick={() => setOpen(!open)} className="flex w-full items-center justify-between px-3 py-2 text-left">
-        <span className="text-sm font-semibold text-slate-800">{title}</span>
-        <span className="flex items-center gap-2">
-          {badge && <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-600">{badge}</span>}
-          <svg className={`h-4 w-4 text-slate-500 transition ${open ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
-          </svg>
-        </span>
-      </button>
-      {open && <div className="space-y-2 border-t border-slate-200 p-3">{children}</div>}
-    </div>
-  );
-}
+const MATERIALS: { value: WallMaterial; label: string }[] = (['spandek', 'triplek', 'bata'] as WallMaterial[]).map((m) => ({
+  value: m,
+  label: MATERIAL_LABEL[m],
+}));
 
-const MATERIALS: { value: WallMaterial; label: string }[] = (['spandek', 'triplek', 'bata'] as WallMaterial[]).map((m) => ({ value: m, label: MATERIAL_LABEL[m] }));
 const WALLS: { value: WallSide; label: string }[] = [
   { value: 'front', label: 'Depan' },
   { value: 'back', label: 'Belakang' },
@@ -115,6 +65,7 @@ const WALLS: { value: WallSide; label: string }[] = [
   { value: 'right', label: 'Kanan' },
 ];
 
+/* ------------------------------------------------------------------ */
 export function Editor({
   variant,
   design,
@@ -131,188 +82,328 @@ export function Editor({
   const g = derive(design);
   const set = (p: Partial<Design>) => api.patch(variant, p);
   const upd = (fn: (d: Design) => Design) => api.update(variant, fn);
+  const [activeGenset, setActiveGenset] = useState(design.gensets[0]?.id ?? '');
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!design.gensets.some((unit) => unit.id === activeGenset)) {
+      setActiveGenset(design.gensets[0]?.id ?? '');
+    }
+  }, [design.gensets, activeGenset]);
+
+  const genset = design.gensets.find((unit) => unit.id === activeGenset) ?? design.gensets[0];
+  const patchGenset = (p: Partial<Design['gensets'][number]>) => {
+    if (!genset) return;
+    upd((d) => ({ ...d, gensets: d.gensets.map((unit) => (unit.id === genset.id ? { ...unit, ...p } : unit)) }));
+  };
 
   const exportJson = () => {
-    const blob = new Blob([JSON.stringify(api.designs, null, 2)], { type: 'application/json' });
+    const blob = new Blob([api.exportProject()], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'rumah-genset-desain.json';
-    a.click();
-    URL.revokeObjectURL(url);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'rumah-genset-desain.json';
+    anchor.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1200);
   };
 
   const importJson = (file: File) => {
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        api.importJson(String(reader.result));
-      } catch (e) {
-        alert('File tidak valid: ' + (e as Error).message);
+        api.importProject(String(reader.result));
+      } catch (error) {
+        alert('File tidak valid: ' + (error as Error).message);
       }
     };
     reader.readAsText(file);
   };
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-bold text-slate-900">Editor — {variant === 'before' ? 'BEFORE' : 'AFTER'}</h3>
-        <div className="flex flex-wrap justify-end gap-1">
-          <button
-            type="button"
+    <div className="no-scrollbar max-h-[76vh] overflow-y-auto rounded-2xl border border-white/10 bg-[#0e1618]/90 xl:max-h-[calc(100vh-7rem)]">
+      {/* header panel */}
+      <div className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-white/[0.08] bg-[#0e1618]/95 px-4 py-3 backdrop-blur">
+        <div className="flex items-center gap-2">
+          <span className="flex h-7 w-7 items-center justify-center rounded-md border border-lime/25 bg-lime/10 text-lime">
+            <PencilRuler size={13} />
+          </span>
+          <div>
+            <p className="text-[12px] font-medium text-[#e5ece1]">Edit ukuran</p>
+            <p className="font-mono-tech text-[8px] uppercase tracking-[0.12em] text-mist-2">
+              live · denah + 3D · tersimpan otomatis
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1">
+          <ResetButton
             onClick={() => {
-              if (confirm(`Kembalikan desain ${variant.toUpperCase()} ke data survey awal? Perubahan Anda pada varian ini akan hilang.`)) api.reset(variant);
+              if (confirm(`Kembalikan desain ${variant.toUpperCase()} ke data survey awal?`)) api.reset(variant);
             }}
-            className="rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-50"
-            title="Kembalikan varian ini ke data survey awal"
-          >
-            Reset
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (confirm('Kembalikan BEFORE & AFTER ke data survey awal? Semua perubahan akan hilang.')) api.reset();
-            }}
-            className="rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-50"
-            title="Kembalikan kedua varian ke data survey awal"
-          >
-            Reset semua
-          </button>
-          <button type="button" onClick={exportJson} className="rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-50">
-            Export
-          </button>
-          <label className="cursor-pointer rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-50">
-            Import
-            <input type="file" accept="application/json" className="hidden" onChange={(e) => e.target.files?.[0] && importJson(e.target.files[0])} />
-          </label>
+            label="Default"
+          />
         </div>
       </div>
 
-      <label className="flex flex-col gap-0.5">
-        <span className="text-[11px] uppercase tracking-wide text-slate-500">Judul</span>
-        <input value={design.title} onChange={(e) => set({ title: e.target.value })} className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-blue-500" />
-      </label>
-
-      <Section title="Bangunan Utama" badge={`${g.totalWidth} × ${g.depth} cm`}>
-        <div className="grid grid-cols-2 gap-2">
-          <NumField label="Lebar utama" value={design.width} onChange={(v) => set({ width: Math.max(100, v) })} />
-          <NumField label="Panjang" value={design.depth} onChange={(v) => set({ depth: Math.max(100, v) })} />
-          <NumField label="Tinggi dinding" value={design.wallHeight} onChange={(v) => set({ wallHeight: Math.max(150, v) })} />
-          <NumField label="Tinggi naik atap" value={design.roofRise} onChange={(v) => set({ roofRise: Math.max(20, v) })} />
-          <NumField label="Tritisan (overhang)" value={design.overhang} onChange={(v) => set({ overhang: Math.max(0, v) })} />
-          <SelectField label="Material dinding" value={design.wallMaterial} options={MATERIALS} onChange={(v) => set({ wallMaterial: v })} />
-        </div>
-        <p className="text-[11px] text-slate-500">
-          Kemiringan atap ≈ {g.pitchDeg.toFixed(1)}° • Tinggi bubungan {g.ridgeH} cm • Tinggi tritisan {Math.round(g.eaveH)} cm
-          {g.canopy ? ` • Atap perluasan datar ${Math.round(g.canopy.y)} cm` : ''}
-        </p>
-      </Section>
-
-      <Section title="Perluasan Sisi Kiri + Atap Datar" badge={design.extension.enabled ? `+${design.extension.width} cm` : 'nonaktif'}>
-        <Toggle label="Aktifkan perluasan (bekas jalur pagar)" checked={design.extension.enabled} onChange={(v) => api.setExtensionEnabled(variant, v)} />
-        <div className="grid grid-cols-2 gap-2">
-          <NumField label="Lebar perluasan" value={design.extension.width} onChange={(v) => api.setExtensionWidth(variant, Math.max(30, v))} />
-          <NumField
-            label="Tinggi dinding & atap"
-            value={design.extension.wallHeight}
-            onChange={(v) => set({ extension: { ...design.extension, wallHeight: Math.max(150, v) } })}
-            className="col-span-1"
-          />
-          <SelectField label="Material dinding ekst." value={design.extension.material} options={MATERIALS} onChange={(v) => set({ extension: { ...design.extension, material: v } })} />
-        </div>
-        {design.extension.enabled && g.canopy ? (
-          <div className="rounded-md border border-amber-200 bg-amber-50 px-2.5 py-2 text-[11px] leading-snug text-amber-900">
-            <p className="font-semibold">Atap perluasan: DATAR (rata, sesuai sketsa revisi)</p>
-            <p>
-              Tinggi bidang atap datar <b>{Math.round(g.canopy.y)} cm</b>, menempel ke dinding utama di bawah tritisan
-              atap pelana (±{Math.round(g.eaveH)} cm).
+      <div className="px-4 pb-5">
+        {/* ringkasan cepat */}
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <div className="rounded-lg border border-white/[0.07] bg-black/25 px-2.5 py-2">
+            <span className="font-mono-tech text-[8px] uppercase tracking-[0.08em] text-mist-2">footprint</span>
+            <p className="mt-1 font-mono-tech text-[11px] text-[#dfe7dd]">
+              {g.totalWidth} × {g.depth} cm
             </p>
-            {g.canopy.capped && (
-              <p className="mt-1 font-semibold text-red-700">
-                Permintaan {design.extension.wallHeight} cm dibatasi ke {Math.round(g.canopy.y)} cm agar atap datar tidak
-                menembus atap utama.
-              </p>
-            )}
           </div>
-        ) : (
-          <p className="text-[11px] text-slate-500">
-            Nonaktif: luas bangunan tetap {design.width} cm. Aktifkan untuk memasukkan area 150 cm bekas jalur pagar.
-          </p>
-        )}
-      </Section>
-
-      <Section title="Tiang / Kolom" badge={`${design.columns.length} bh`}>
-        <div className="space-y-1.5">
-          <div className="grid grid-cols-[1fr_64px_64px_52px_24px] gap-1 text-[10px] uppercase tracking-wide text-slate-500">
-            <span>Label</span>
-            <span>X</span>
-            <span>Z</span>
-            <span>Ukuran</span>
-            <span />
-          </div>
-          {design.columns.map((c) => (
-            <div
-              key={c.id}
-              className={`grid grid-cols-[1fr_64px_64px_52px_24px] items-center gap-1 rounded-md p-1 ${selectedId === c.id ? 'bg-blue-50 ring-1 ring-blue-300' : ''}`}
-              onClick={() => onSelect(c.id)}
-            >
-              <input
-                value={c.label}
-                onChange={(e) => upd((d) => ({ ...d, columns: d.columns.map((x) => (x.id === c.id ? { ...x, label: e.target.value } : x)) }))}
-                className={`min-w-0 rounded border border-slate-200 px-1.5 py-1 text-xs ${c.isNew ? 'text-red-700 font-semibold' : 'text-slate-800'}`}
-              />
-              <input type="number" step={5} value={c.x} onChange={(e) => upd((d) => ({ ...d, columns: d.columns.map((x) => (x.id === c.id ? { ...x, x: Number(e.target.value) } : x)) }))} className="rounded border border-slate-200 px-1 py-1 text-xs font-mono" />
-              <input type="number" step={5} value={c.z} onChange={(e) => upd((d) => ({ ...d, columns: d.columns.map((x) => (x.id === c.id ? { ...x, z: Number(e.target.value) } : x)) }))} className="rounded border border-slate-200 px-1 py-1 text-xs font-mono" />
-              <input type="number" step={5} value={c.size} onChange={(e) => upd((d) => ({ ...d, columns: d.columns.map((x) => (x.id === c.id ? { ...x, size: Math.max(10, Number(e.target.value)) } : x)) }))} className="rounded border border-slate-200 px-1 py-1 text-xs font-mono" />
-              <button type="button" title="Hapus" onClick={() => upd((d) => ({ ...d, columns: d.columns.filter((x) => x.id !== c.id) }))} className="text-slate-400 hover:text-red-600">
-                ×
-              </button>
-            </div>
-          ))}
-          <div className="flex gap-1">
-            <button
-              type="button"
-              onClick={() =>
-                upd((d) => ({
-                  ...d,
-                  columns: [...d.columns, { id: 'k' + Date.now(), label: `K${d.columns.length + 1}`, x: Math.round(g.totalWidth / 2), z: Math.round(g.depth / 2), size: 30, isNew: true }],
-                }))
-              }
-              className="rounded-md bg-slate-900 px-2 py-1 text-[11px] font-medium text-white hover:bg-slate-700"
-            >
-              + Tambah tiang baru
-            </button>
-            <span className="self-center text-[10px] text-slate-500">X/Z = titik as tiang (cm) dari sudut kiri-belakang. Bisa juga di-drag pada denah.</span>
+          <div className="rounded-lg border border-white/[0.07] bg-black/25 px-2.5 py-2">
+            <span className="font-mono-tech text-[8px] uppercase tracking-[0.08em] text-mist-2">luas lantai</span>
+            <p className="mt-1 font-mono-tech text-[11px] text-[#dfe7dd]">{g.floorArea.toFixed(2)} m²</p>
           </div>
         </div>
-      </Section>
 
-      <Section title="Genset" badge={`${design.gensets.length} unit`}>
-        <p className="text-[11px] text-slate-500">
-          X/Z = sudut kiri-belakang genset (cm) dari sudut kiri-belakang bangunan. Bisa juga digeser langsung di denah.
-        </p>
-        <div className="space-y-2">
-          {design.gensets.map((gs) => (
-            <div key={gs.id} className={`space-y-1.5 rounded-md border p-2 ${selectedId === gs.id ? 'border-blue-300 bg-blue-50' : 'border-slate-200 bg-white'}`} onClick={() => onSelect(gs.id)}>
-              <div className="flex items-center gap-2">
-                <input type="color" value={gs.color} onChange={(e) => upd((d) => ({ ...d, gensets: d.gensets.map((x) => (x.id === gs.id ? { ...x, color: e.target.value } : x)) }))} className="h-7 w-8 cursor-pointer rounded border border-slate-200" />
-                <input value={gs.label} onChange={(e) => upd((d) => ({ ...d, gensets: d.gensets.map((x) => (x.id === gs.id ? { ...x, label: e.target.value } : x)) }))} className="min-w-0 flex-1 rounded border border-slate-200 px-1.5 py-1 text-xs font-semibold" />
-                <button type="button" onClick={() => upd((d) => ({ ...d, gensets: d.gensets.filter((x) => x.id !== gs.id) }))} className="text-slate-400 hover:text-red-600">
-                  ×
+        {/* 01 bangunan utama */}
+        <SectionLabel index="01" title="Bangunan utama" />
+        <div>
+          <NumberField label="Lebar bangunan utama" value={design.width} min={200} max={1200} onChange={(v) => set({ width: v })} />
+          <NumberField label="Panjang (kedalaman)" value={design.depth} min={200} max={1500} onChange={(v) => set({ depth: v })} />
+          <NumberField label="Tinggi dinding / eave" value={design.wallHeight} min={150} max={600} onChange={(v) => set({ wallHeight: v })} />
+          <NumberField
+            label="Rise atap pelana"
+            value={design.roofRise}
+            min={20}
+            max={400}
+            onChange={(v) => set({ roofRise: v })}
+            hint={`Ridge ≈ ${g.ridgeH} cm dari lantai · kemiringan ${g.pitchDeg.toFixed(1)}°`}
+          />
+          <NumberField
+            label="Overstek / tritisan"
+            value={design.overhang}
+            min={0}
+            max={200}
+            onChange={(v) => set({ overhang: v })}
+            hint={`Eave (tepi atap) ≈ ${Math.round(g.eaveH)} cm`}
+          />
+          <Select label="Material dinding utama" value={design.wallMaterial} options={MATERIALS} onChange={(v) => set({ wallMaterial: v as WallMaterial })} />
+        </div>
+
+        {/* 02 perluasan + atap datar */}
+        <SectionLabel index="02" title="Perluasan & atap datar" />
+        <div>
+          <ToggleRow
+            label="Perluasan sisi kiri"
+            description="Bekas jalur pagar 150 cm masuk ke bangunan"
+            checked={design.extension.enabled}
+            onChange={(v) => api.setExtensionEnabled(variant, v)}
+          />
+          {design.extension.enabled ? (
+            <>
+              <NumberField
+                label="Lebar perluasan"
+                value={design.extension.width}
+                min={30}
+                max={600}
+                onChange={(v) => api.setExtensionWidth(variant, v)}
+              />
+              <NumberField
+                label="Tinggi dinding / atap datar"
+                value={design.extension.wallHeight}
+                min={150}
+                max={Math.max(160, Math.round(g.eaveH) - 6)}
+                step={5}
+                onChange={(v) => set({ extension: { ...design.extension, wallHeight: v } })}
+                hint={
+                  g.canopy
+                    ? `Atap perluasan DATAR · tinggi efektif ${Math.round(g.canopy.y)} cm (maks. ${Math.round(g.eaveH) - 6} cm di bawah tritisan).`
+                    : undefined
+                }
+              />
+              <Select
+                label="Material dinding perluasan"
+                value={design.extension.material}
+                options={MATERIALS}
+                onChange={(v) => set({ extension: { ...design.extension, material: v as WallMaterial } })}
+              />
+              {g.canopy?.capped && (
+                <p className="mt-1.5 rounded-md border border-amber/25 bg-amber/[0.07] px-2.5 py-2 text-[10px] leading-snug text-amber">
+                  Tinggi dibatasi otomatis ke {Math.round(g.canopy.y)} cm agar atap datar tidak menembus atap pelana.
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="py-2 text-[10px] leading-snug text-mist-2">
+              Nonaktif — luas bangunan tetap {design.width} cm. Aktifkan untuk memasukkan area bekas jalur pagar.
+            </p>
+          )}
+        </div>
+
+        {/* 03 genset */}
+        <SectionLabel index="03" title="Genset & pondasi" />
+        <div>
+          {(design.gensets.length > 1 || design.gensets.length === 1) && (
+            <div className="mt-2 flex flex-wrap gap-1 rounded-lg border border-white/10 bg-black/25 p-1">
+              {design.gensets.map((unit) => (
+                <button
+                  key={unit.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveGenset(unit.id);
+                    onSelect(unit.id);
+                  }}
+                  className={cn(
+                    'flex-1 rounded-md px-2 py-1.5 font-mono-tech text-[9px] uppercase tracking-[0.06em] transition',
+                    genset?.id === unit.id ? 'bg-lime text-ink' : 'text-mist-2 hover:text-white',
+                  )}
+                >
+                  {unit.isNew ? 'Baru' : 'Existing'} · {unit.w}×{unit.d}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {genset ? (
+            <>
+              <div className="mt-2 flex items-center gap-2">
+                <input type="color" value={genset.color} onChange={(e) => patchGenset({ color: e.target.value })} className="h-6 w-8 cursor-pointer rounded border border-white/10 bg-transparent" />
+                <input
+                  value={genset.label}
+                  onChange={(e) => patchGenset({ label: e.target.value })}
+                  className="min-w-0 flex-1 rounded-md border border-white/10 bg-black/40 px-2 py-1 text-[11px] font-medium text-white outline-none focus:border-lime/60"
+                />
+                <button
+                  type="button"
+                  title="Hapus genset"
+                  onClick={() => upd((d) => ({ ...d, gensets: d.gensets.filter((unit) => unit.id !== genset.id) }))}
+                  className="rounded-md p-1 text-mist-2 transition hover:bg-white/10 hover:text-rust"
+                >
+                  <Trash2 size={12} />
                 </button>
               </div>
-              <div className="grid grid-cols-3 gap-1.5">
-                <NumField label="X (kiri)" value={gs.x} onChange={(v) => upd((d) => ({ ...d, gensets: d.gensets.map((x) => (x.id === gs.id ? { ...x, x: v } : x)) }))} />
-                <NumField label="Z (belakang)" value={gs.z} onChange={(v) => upd((d) => ({ ...d, gensets: d.gensets.map((x) => (x.id === gs.id ? { ...x, z: v } : x)) }))} />
-                <NumField label="Pondasi" value={gs.foundationH} onChange={(v) => upd((d) => ({ ...d, gensets: d.gensets.map((x) => (x.id === gs.id ? { ...x, foundationH: Math.max(0, v) } : x)) }))} />
-                <NumField label="Lebar (X)" value={gs.w} onChange={(v) => upd((d) => ({ ...d, gensets: d.gensets.map((x) => (x.id === gs.id ? { ...x, w: Math.max(20, v) } : x)) }))} />
-                <NumField label="Panjang (Z)" value={gs.d} onChange={(v) => upd((d) => ({ ...d, gensets: d.gensets.map((x) => (x.id === gs.id ? { ...x, d: Math.max(20, v) } : x)) }))} />
-                <NumField label="Tinggi" value={gs.h} onChange={(v) => upd((d) => ({ ...d, gensets: d.gensets.map((x) => (x.id === gs.id ? { ...x, h: Math.max(20, v) } : x)) }))} />
+              <div className="mt-1">
+                <NumberField label="Panjang unit (X)" value={genset.w} min={40} max={g.totalWidth} step={5} onChange={(v) => patchGenset({ w: v })} />
+                <NumberField label="Lebar unit (Z)" value={genset.d} min={40} max={g.depth} step={5} onChange={(v) => patchGenset({ d: v })} />
+                <NumberField label="Tinggi unit" value={genset.h} min={40} max={400} step={5} onChange={(v) => patchGenset({ h: v })} />
+                <NumberField label="Tebal pondasi" value={genset.foundationH} min={0} max={120} step={5} onChange={(v) => patchGenset({ foundationH: v })} />
+                <div className="grid grid-cols-2 gap-3">
+                  <NumberField
+                    label="Posisi X"
+                    value={genset.x}
+                    min={0}
+                    max={Math.max(0, g.totalWidth - genset.w)}
+                    step={5}
+                    compact
+                    onChange={(v) => patchGenset({ x: v })}
+                  />
+                  <NumberField
+                    label="Posisi Z"
+                    value={genset.z}
+                    min={0}
+                    max={Math.max(0, g.depth - genset.d)}
+                    step={5}
+                    compact
+                    onChange={(v) => patchGenset({ z: v })}
+                  />
+                </div>
+                <p className="pb-1 text-[10px] leading-snug text-mist-2">
+                  Jarak bebas · kiri {genset.x} · kanan {g.totalWidth - genset.x - genset.w} · belakang {genset.z} · depan{' '}
+                  {g.depth - genset.z - genset.d} cm
+                </p>
               </div>
-              <p className="text-[10px] text-slate-500">
-                Jarak ke dinding: kiri {gs.x} • kanan {g.totalWidth - gs.x - gs.w} • belakang {gs.z} • depan {g.depth - gs.z - gs.d} cm
-              </p>
+            </>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={() =>
+              upd((d) => ({
+                ...d,
+                gensets: [
+                  ...d.gensets,
+                  {
+                    id: 'g' + Date.now(),
+                    label: 'Genset Tambahan',
+                    x: 40,
+                    z: 80,
+                    w: 120,
+                    d: 300,
+                    h: 180,
+                    foundationH: 30,
+                    color: '#f2a65a',
+                    isNew: true,
+                  },
+                ],
+              }))
+            }
+            className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-white/10 px-2.5 py-1.5 font-mono-tech text-[9px] uppercase tracking-[0.08em] text-mist transition hover:border-lime/40 hover:text-lime"
+          >
+            <Plus size={10} /> Tambah genset
+          </button>
+        </div>
+
+        {/* 04 tiang */}
+        <SectionLabel index="04" title={`Tiang · ${design.columns.length} titik`} />
+        <div className="mt-1 space-y-1">
+          <div className="grid grid-cols-[1fr_52px_52px_46px_22px] items-center gap-1 font-mono-tech text-[8px] uppercase tracking-[0.06em] text-mist-2">
+            <span>label</span>
+            <span>x</span>
+            <span>z</span>
+            <span>size</span>
+            <span />
+          </div>
+          {design.columns.map((column) => (
+            <div
+              key={column.id}
+              onClick={() => onSelect(column.id)}
+              className={cn(
+                'grid grid-cols-[1fr_52px_52px_46px_22px] items-center gap-1 rounded-md px-1 py-1 transition',
+                selectedId === column.id ? 'bg-lime/[0.08] ring-1 ring-lime/30' : 'hover:bg-white/[0.03]',
+              )}
+            >
+              <input
+                value={column.label}
+                onChange={(e) =>
+                  upd((d) => ({ ...d, columns: d.columns.map((c) => (c.id === column.id ? { ...c, label: e.target.value } : c)) }))
+                }
+                className={cn(
+                  'min-w-0 rounded border border-white/10 bg-black/30 px-1.5 py-1 text-[10px] outline-none focus:border-lime/60',
+                  column.isNew ? 'font-semibold text-amber' : 'text-[#dfe7dd]',
+                )}
+              />
+              <input
+                type="number"
+                step={5}
+                value={column.x}
+                onChange={(e) =>
+                  upd((d) => ({ ...d, columns: d.columns.map((c) => (c.id === column.id ? { ...c, x: Number(e.target.value) } : c)) }))
+                }
+                className={ICON_INPUT}
+              />
+              <input
+                type="number"
+                step={5}
+                value={column.z}
+                onChange={(e) =>
+                  upd((d) => ({ ...d, columns: d.columns.map((c) => (c.id === column.id ? { ...c, z: Number(e.target.value) } : c)) }))
+                }
+                className={ICON_INPUT}
+              />
+              <input
+                type="number"
+                step={5}
+                value={column.size}
+                onChange={(e) =>
+                  upd((d) => ({
+                    ...d,
+                    columns: d.columns.map((c) => (c.id === column.id ? { ...c, size: Math.max(10, Number(e.target.value)) } : c)),
+                  }))
+                }
+                className={ICON_INPUT}
+              />
+              <button
+                type="button"
+                title="Hapus tiang"
+                onClick={() => upd((d) => ({ ...d, columns: d.columns.filter((c) => c.id !== column.id) }))}
+                className="text-mist-2 transition hover:text-rust"
+              >
+                <Minus size={11} />
+              </button>
             </div>
           ))}
           <button
@@ -320,42 +411,114 @@ export function Editor({
             onClick={() =>
               upd((d) => ({
                 ...d,
-                gensets: [...d.gensets, { id: 'g' + Date.now(), label: 'Genset Tambahan', x: 50, z: 100, w: 120, d: 300, h: 180, foundationH: 30, color: '#f59e0b', isNew: true }],
+                columns: [
+                  ...d.columns,
+                  {
+                    id: 'k' + Date.now(),
+                    label: `K${d.columns.length + 1}`,
+                    x: Math.round(g.totalWidth / 2),
+                    z: Math.round(g.depth / 2),
+                    size: 30,
+                    isNew: true,
+                  },
+                ],
               }))
             }
-            className="rounded-md bg-slate-900 px-2 py-1 text-[11px] font-medium text-white hover:bg-slate-700"
+            className="inline-flex items-center gap-1.5 rounded-full border border-white/10 px-2.5 py-1.5 font-mono-tech text-[9px] uppercase tracking-[0.08em] text-mist transition hover:border-lime/40 hover:text-lime"
           >
-            + Tambah genset
+            <Plus size={10} /> Tambah tiang
           </button>
+          <p className="text-[10px] leading-snug text-mist-2">X/Z = titik as tiang (cm) dari sudut kiri-belakang. Bisa juga digeser di denah.</p>
         </div>
-      </Section>
 
-      <Section title="Pintu" badge={`${design.door.width} × ${design.door.height}`}>
-        <div className="grid grid-cols-2 gap-2">
-          <SelectField label="Dinding" value={design.door.wall} options={WALLS} onChange={(v) => set({ door: { ...design.door, wall: v } })} />
-          <NumField label="Posisi (offset)" value={design.door.offset} onChange={(v) => set({ door: { ...design.door, offset: Math.max(0, v) } })} />
-          <NumField label="Lebar" value={design.door.width} onChange={(v) => set({ door: { ...design.door, width: Math.max(60, v) } })} />
-          <NumField label="Tinggi" value={design.door.height} onChange={(v) => set({ door: { ...design.door, height: Math.max(150, v) } })} />
+        {/* 05 pintu */}
+        <SectionLabel index="05" title="Pintu" />
+        <div>
+          <Select label="Dinding pintu" value={design.door.wall} options={WALLS} onChange={(v) => set({ door: { ...design.door, wall: v as WallSide } })} />
+          <NumberField label="Lebar pintu" value={design.door.width} min={50} max={400} onChange={(v) => set({ door: { ...design.door, width: v } })} />
+          <NumberField label="Tinggi pintu" value={design.door.height} min={120} max={400} onChange={(v) => set({ door: { ...design.door, height: v } })} />
+          <NumberField
+            label="Geser pintu (dari kiri)"
+            value={design.door.offset}
+            min={0}
+            max={Math.max(0, (design.door.wall === 'front' || design.door.wall === 'back' ? g.totalWidth : g.depth) - design.door.width)}
+            onChange={(v) => set({ door: { ...design.door, offset: v } })}
+            hint="Posisi diukur dari tepi kiri (untuk dinding depan/belakang) atau tepi belakang (dinding samping)."
+          />
         </div>
-      </Section>
 
-      <Section title="Pagar" badge={design.fence.visible ? `jarak ${design.fence.gap} cm` : 'disembunyikan'}>
-        <Toggle label="Tampilkan pagar" checked={design.fence.visible} onChange={(v) => set({ fence: { ...design.fence, visible: v } })} />
-        <div className="grid grid-cols-2 gap-2">
-          <NumField label="Jarak dari dinding kiri" value={design.fence.gap} onChange={(v) => set({ fence: { ...design.fence, gap: Math.max(0, v) } })} />
-          <NumField label="Tinggi pagar" value={design.fence.height} onChange={(v) => set({ fence: { ...design.fence, height: Math.max(50, v) } })} />
+        {/* 06 pagar */}
+        <SectionLabel index="06" title="Pagar" />
+        <div>
+          <ToggleRow
+            label="Tampilkan pagar"
+            description="Hanya tampilan model, tidak mengubah ukuran"
+            checked={design.fence.visible}
+            onChange={(v) => set({ fence: { ...design.fence, visible: v } })}
+          />
+          <div className="grid grid-cols-2 gap-3">
+            <NumberField
+              label="Jarak ke dinding"
+              value={design.fence.gap}
+              min={0}
+              max={600}
+              onChange={(v) => set({ fence: { ...design.fence, gap: v } })}
+            />
+            <NumberField
+              label="Tinggi pagar"
+              value={design.fence.height}
+              min={50}
+              max={400}
+              onChange={(v) => set({ fence: { ...design.fence, height: v } })}
+            />
+          </div>
         </div>
-      </Section>
 
-      <Section title="Catatan Desain" defaultOpen={false}>
-        <p className="text-[11px] text-slate-500">Satu baris = satu poin catatan yang tampil di bawah model 3D.</p>
+        {/* 07 catatan */}
+        <SectionLabel index="07" title="Catatan desain" />
         <textarea
           value={design.notes.join('\n')}
           onChange={(e) => set({ notes: e.target.value.split('\n') })}
           rows={5}
-          className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-blue-500"
+          className="mt-2 w-full rounded-md border border-white/10 bg-black/40 px-2.5 py-2 text-[11px] leading-relaxed text-[#dfe7dd] outline-none transition focus:border-lime/60 focus:ring-1 focus:ring-lime/20"
         />
-      </Section>
+        <p className="mt-1 text-[10px] text-mist-2">Satu baris = satu poin catatan yang tampil di bawah model 3D.</p>
+
+        {/* aksi data */}
+        <SectionLabel index="08" title="Data" />
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={exportJson}
+            className="inline-flex items-center justify-center gap-1.5 rounded-full border border-white/12 bg-white/[0.03] px-2.5 py-2 font-mono-tech text-[9px] uppercase tracking-[0.08em] text-mist transition hover:border-lime/40 hover:text-lime"
+          >
+            <Download size={10} /> Ekspor
+          </button>
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            className="inline-flex items-center justify-center gap-1.5 rounded-full border border-white/12 bg-white/[0.03] px-2.5 py-2 font-mono-tech text-[9px] uppercase tracking-[0.08em] text-mist transition hover:border-lime/40 hover:text-lime"
+          >
+            <Upload size={10} /> Impor
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/json"
+            className="hidden"
+            onChange={(e) => e.target.files?.[0] && importJson(e.target.files[0])}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            if (confirm('Kembalikan BEFORE & AFTER ke data survey awal? Semua perubahan yang belum disimpan sebagai versi akan hilang.')) api.reset();
+          }}
+          className="mt-2 w-full rounded-full border border-white/10 px-2.5 py-2 font-mono-tech text-[9px] uppercase tracking-[0.08em] text-mist-2 transition hover:border-rust/40 hover:text-rust"
+        >
+          Reset semua varian
+        </button>
+      </div>
     </div>
   );
 }

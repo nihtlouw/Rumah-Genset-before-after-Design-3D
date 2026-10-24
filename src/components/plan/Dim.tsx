@@ -21,7 +21,7 @@ export function Dim({
   y2,
   offset = 0,
   label,
-  color = '#0f172a',
+  color = '#202a27',
   fontSize = 16,
   flip = false,
   dashed = false,
@@ -95,26 +95,26 @@ export function HatchDefs() {
   return (
     <defs>
       <pattern id="hatch" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(45)">
-        <line x1="0" y1="0" x2="0" y2="7" stroke="#1e293b" strokeWidth="2.2" />
+        <line x1="0" y1="0" x2="0" y2="7" stroke="#26312b" strokeWidth="2.2" />
       </pattern>
       <pattern id="hatchNew" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(45)">
-        <line x1="0" y1="0" x2="0" y2="7" stroke="#b91c1c" strokeWidth="2.2" />
+        <line x1="0" y1="0" x2="0" y2="7" stroke="#a8612b" strokeWidth="2.2" />
       </pattern>
       <pattern id="hatchLight" patternUnits="userSpaceOnUse" width="10" height="10" patternTransform="rotate(45)">
-        <line x1="0" y1="0" x2="0" y2="10" stroke="#94a3b8" strokeWidth="1" />
+        <line x1="0" y1="0" x2="0" y2="10" stroke="#8b9385" strokeWidth="1" />
       </pattern>
       <pattern id="concrete" patternUnits="userSpaceOnUse" width="12" height="12">
-        <circle cx="3" cy="4" r="1" fill="#94a3b8" />
-        <circle cx="9" cy="9" r="1.2" fill="#94a3b8" />
+        <circle cx="3" cy="4" r="1" fill="#8b9385" />
+        <circle cx="9" cy="9" r="1.2" fill="#8b9385" />
       </pattern>
       <pattern id="grid50" patternUnits="userSpaceOnUse" width="50" height="50">
-        <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#e2e8f0" strokeWidth="0.8" />
+        <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#d9dbcc" strokeWidth="0.8" />
       </pattern>
       <pattern id="roofHatch" patternUnits="userSpaceOnUse" width="14" height="14" patternTransform="rotate(-45)">
-        <line x1="0" y1="0" x2="0" y2="14" stroke="#64748b" strokeWidth="1" />
+        <line x1="0" y1="0" x2="0" y2="14" stroke="#778074" strokeWidth="1" />
       </pattern>
       <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
-        <path d="M 0 0 L 10 5 L 0 10 z" fill="#0f172a" />
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#202a27" />
       </marker>
     </defs>
   );

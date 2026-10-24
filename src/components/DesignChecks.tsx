@@ -1,5 +1,7 @@
+import { ShieldCheck } from 'lucide-react';
 import { derive } from '../lib/geometry';
 import type { Design } from '../types';
+import { CheckLine } from './ui';
 import { cn } from '../utils/cn';
 
 type Level = 'error' | 'warn' | 'ok';
@@ -44,7 +46,12 @@ export function checkDesign(d: Design): CheckItem[] {
 
   // ---------------- tiang ----------------
   d.columns.forEach((c) => {
-    if (c.x - c.size / 2 < -0.5 || c.x + c.size / 2 > g.totalWidth + 0.5 || c.z - c.size / 2 < -0.5 || c.z + c.size / 2 > g.depth + 0.5) {
+    if (
+      c.x - c.size / 2 < -0.5 ||
+      c.x + c.size / 2 > g.totalWidth + 0.5 ||
+      c.z - c.size / 2 < -0.5 ||
+      c.z + c.size / 2 > g.depth + 0.5
+    ) {
       items.push({ level: 'warn', text: `Tiang ${c.label} berada di luar denah bangunan (${c.x}, ${c.z}).` });
     }
   });
@@ -52,14 +59,18 @@ export function checkDesign(d: Design): CheckItem[] {
   // ---------------- genset ----------------
   d.gensets.forEach((gs) => {
     if (gs.x < -0.5 || gs.x + gs.w > g.totalWidth + 0.5 || gs.z < -0.5 || gs.z + gs.d > g.depth + 0.5) {
-      items.push({ level: 'error', text: `${gs.label} keluar dari batas bangunan (${gs.x}–${gs.x + gs.w} cm × ${gs.z}–${gs.z + gs.d} cm).` });
+      items.push({
+        level: 'error',
+        text: `${gs.label} keluar dari batas bangunan (${gs.x}–${gs.x + gs.w} cm × ${gs.z}–${gs.z + gs.d} cm).`,
+      });
     }
 
     const top = gs.foundationH + gs.h;
     const cx = gs.x + gs.w / 2;
     let roofTop: number | null = null;
     if (g.canopy && cx < g.ext) roofTop = g.canopy.y;
-    else if (cx >= g.mainX0 && cx <= g.mainX1) roofTop = g.ridgeH - Math.abs(cx - (g.mainX0 + g.mainX1) / 2) * Math.tan(g.pitch);
+    else if (cx >= g.mainX0 && cx <= g.mainX1)
+      roofTop = g.ridgeH - Math.abs(cx - (g.mainX0 + g.mainX1) / 2) * Math.tan(g.pitch);
 
     if (roofTop !== null) {
       const clearance = roofTop - top;
@@ -90,7 +101,10 @@ export function checkDesign(d: Design): CheckItem[] {
       const overlapX = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
       const overlapZ = Math.min(a.z + a.d, b.z + b.d) - Math.max(a.z, b.z);
       if (overlapX > 1 && overlapZ > 1) {
-        items.push({ level: 'error', text: `${a.label} dan ${b.label} saling bertumpuk (${Math.round(overlapX)} × ${Math.round(overlapZ)} cm).` });
+        items.push({
+          level: 'error',
+          text: `${a.label} dan ${b.label} saling bertumpuk (${Math.round(overlapX)} × ${Math.round(overlapZ)} cm).`,
+        });
       }
     }
   }
@@ -122,39 +136,45 @@ export function checkDesign(d: Design): CheckItem[] {
   return items;
 }
 
-const STYLE: Record<Level, { box: string; dot: string; label: string }> = {
-  error: { box: 'border-red-200 bg-red-50 text-red-900', dot: 'bg-red-500', label: 'Perlu diperbaiki' },
-  warn: { box: 'border-amber-200 bg-amber-50 text-amber-900', dot: 'bg-amber-500', label: 'Perhatian' },
-  ok: { box: 'border-emerald-200 bg-emerald-50 text-emerald-900', dot: 'bg-emerald-500', label: 'OK' },
-};
-
 export function DesignChecks({ design, variant }: { design: Design; variant: string }) {
   const items = checkDesign(design);
   const errors = items.filter((i) => i.level === 'error').length;
   const warns = items.filter((i) => i.level === 'warn').length;
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-3">
-      <div className="mb-2 flex flex-wrap items-center gap-2">
-        <h3 className="text-sm font-bold text-slate-800">Pemeriksaan desain</h3>
-        <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">{variant.toUpperCase()}</span>
-        <span className="ml-auto flex gap-1.5 text-[11px]">
-          <span className={cn('rounded-full px-2 py-0.5 font-semibold', errors ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-500')}>
-            {errors} error
-          </span>
-          <span className={cn('rounded-full px-2 py-0.5 font-semibold', warns ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-500')}>
-            {warns} perhatian
-          </span>
+    <div className="rounded-2xl border border-white/10 bg-[#0d1517] p-4">
+      <div className="flex flex-wrap items-center gap-2 border-b border-white/[0.07] pb-2.5">
+        <span className="flex h-6 w-6 items-center justify-center rounded border border-white/10 bg-white/[0.03] text-mist">
+          <ShieldCheck size={11} />
+        </span>
+        <p className="text-[11px] font-medium text-[#dfe7da]">Pemeriksaan desain</p>
+        <span className="rounded-full border border-white/10 px-2 py-0.5 font-mono-tech text-[8px] uppercase tracking-[0.08em] text-mist-2">
+          {variant}
+        </span>
+        <span
+          className={cn(
+            'ml-auto rounded-full border px-2 py-0.5 font-mono-tech text-[8px] uppercase tracking-[0.08em]',
+            errors ? 'border-rust/30 bg-rust/10 text-rust' : 'border-white/10 text-mist-2',
+          )}
+        >
+          {errors} error
+        </span>
+        <span
+          className={cn(
+            'rounded-full border px-2 py-0.5 font-mono-tech text-[8px] uppercase tracking-[0.08em]',
+            warns ? 'border-amber/30 bg-amber/10 text-amber' : 'border-white/10 text-mist-2',
+          )}
+        >
+          {warns} perhatian
         </span>
       </div>
-      <ul className="space-y-1.5">
-        {items.map((it, i) => (
-          <li key={i} className={cn('flex items-start gap-2 rounded-lg border px-2.5 py-1.5 text-[12px] leading-snug', STYLE[it.level].box)}>
-            <span className={cn('mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full', STYLE[it.level].dot)} />
-            <span>{it.text}</span>
-          </li>
+      <div className="pt-1">
+        {items.map((item, index) => (
+          <CheckLine key={index} state={item.level}>
+            {item.text}
+          </CheckLine>
         ))}
-      </ul>
+      </div>
     </div>
   );
 }

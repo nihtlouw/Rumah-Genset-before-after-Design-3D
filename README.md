@@ -28,11 +28,34 @@ menulis hasil build siap-saji (satu file, JS & CSS inline) ke **dua tempat**:
 
 ## ✨ Isi aplikasi
 
-- **Tab 1 — Konsep & Denah 2D**: catatan survey, denah (bisa drag tiang/genset), tampak 4 sisi, potongan A-A, rekap ukuran before vs after.
-- **Tab 2 — Model 3D**: 8 sudut pandang, opsi tampilan (ukuran, label, atap, dinding transparan, lingkungan, putar otomatis), mode layar penuh.
-- **Editor (panel kanan)**: ubah dimensi bangunan, perluasan sisi kiri + atap datar, tiang, genset, pintu, pagar, dan catatan. Perubahan tersimpan otomatis di browser.
-- **Pemeriksaan desain otomatis**: memperingatkan bila pintu keluar dinding, genset bertumpuk/keluar batas, atau ruang bebas ke atap kurang.
-- **Pintasan keyboard**: `1`/`2` ganti tab, `B`/`A` pilih varian, `V` mode bandingkan.
+Halaman tunggal dengan enam bagian bernomor (nav di header bisa diklik):
+
+| # | Bagian | Isi |
+| --- | --- | --- |
+| 00 | Ringkasan | axonometri skematik, statistik footprint/luas/atap datar, alur survey → 2D → 3D |
+| 01 | Denah & tampak | denah terukur (drag tiang/genset), toggle dimensi detail, mode bandingkan, detail elemen terpilih, cek desain otomatis, catatan lapangan, 4 tampak + potongan A-A |
+| 02 | Model 3D | 8 POV (ISO, depan, belakang, kiri, kanan, atas, iso-belakang, interior), toggle layer (ukuran, label, atap, dinding transparan, lingkungan, putar otomatis), layar penuh |
+| 03 | Simpan & riwayat | status draf, simpan versi baru, perbarui versi aktif, daftar versi (muat, ganti nama, duplikat, unduh, hapus), ekspor/impor JSON |
+| 04 | Before–After | dua denah berdampingan + tabel perubahan utama |
+| 05 | Data & ukuran | rekap angka before/after, tabel kuantitas, catatan konsep & asumsi |
+
+Panel **editor ukuran** menempel di samping model 3D: bangunan utama, perluasan + atap datar,
+genset, tiang, pintu, pagar, catatan, dan aksi data.
+
+### 💾 Menyimpan perubahan ukuran
+
+- **Autosave draf** — setiap perubahan angka (termasuk drag tiang/genset di denah) langsung
+  disimpan ke `localStorage` setelah ±350 ms, jadi tetap ada setelah reload.
+- **Versi bernama** — tombol **Simpan** di header / `Ctrl`/`Cmd + S` menyimpan snapshot
+  `BEFORE + AFTER`; jika ada versi aktif, tombol berubah menjadi **Perbarui**.
+- Versi aktif tetap diingat setelah reload, dan bisa dimuat, diganti nama, diduplikat, atau dihapus
+  di bagian **Riwayat**.
+- **Ekspor / impor JSON** untuk cadangan atau pindah browser. Kunci penyimpanan:
+  `rumah-genset.draft.v3`, `rumah-genset.versions.v3`, `rumah-genset.activeVersion.v3`.
+
+### ⌨️ Pintasan
+
+`B` before · `A` after · `V` bandingkan · `1`–`6` lompat antar bagian · `Ctrl`/`Cmd + S` simpan versi.
 
 ## 🔑 Poin desain penting (AFTER)
 

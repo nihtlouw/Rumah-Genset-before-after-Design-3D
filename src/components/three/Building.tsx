@@ -393,10 +393,11 @@ export function Building({
               />
               <Edges color={selected ? ACCENT : '#1d3033'} threshold={30} />
             </mesh>
-            {options.showLabels && (
+            {options.showLabels && (column.isNew || selected) && (
               <SceneLabel
                 position={[0, height + 0.22, 0]}
                 title={column.label}
+                subtitle={column.isNew ? 'baru' : undefined}
                 tone={column.isNew ? AMBER : STEEL_LIGHT}
                 distanceFactor={9}
               />

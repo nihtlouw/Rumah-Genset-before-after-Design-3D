@@ -414,7 +414,7 @@ export default function App() {
                     Bandingkan
                   </GhostButton>
                   <GhostButton onClick={() => window.print()} icon={<Printer size={11} />}>
-                    Cetak denah {mode === 'before' ? 'Before' : 'After'} / PDF
+                    Cetak gambar {mode === 'before' ? 'Before' : 'After'} / PDF
                   </GhostButton>
                 </>
               }
@@ -878,7 +878,7 @@ export default function App() {
                     Unduh data
                   </GhostButton>
                   <GhostButton onClick={() => window.print()} icon={<Printer size={11} />}>
-                    Cetak denah {mode === 'before' ? 'Before' : 'After'} / PDF
+                    Cetak gambar {mode === 'before' ? 'Before' : 'After'} / PDF
                   </GhostButton>
                 </>
               }

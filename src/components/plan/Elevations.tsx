@@ -11,12 +11,22 @@ function Frame({
   subtitle,
   vb,
   children,
+  printView = false,
 }: {
   title: string;
   subtitle?: string;
   vb: { x: number; y: number; w: number; h: number };
   children: React.ReactNode;
+  printView?: boolean;
 }) {
+  const drawing = (
+    <svg viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`} className="h-auto w-full" style={{ aspectRatio: `${vb.w} / ${vb.h}` }}>
+      <HatchDefs />
+      <rect x={vb.x} y={vb.y} width={vb.w} height={vb.h} fill={printView ? '#fff' : '#ecece2'} />
+      {children}
+    </svg>
+  );
+  if (printView) return drawing;
   return (
     <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0d1517]">
       <div className="flex items-baseline justify-between gap-2 border-b border-white/[0.08] px-4 py-2.5">
@@ -24,11 +34,7 @@ function Frame({
         {subtitle && <span className="text-right font-mono-tech text-[8.5px] uppercase tracking-[0.06em] text-mist-2">{subtitle}</span>}
       </div>
       <div className="bg-paper text-paperink">
-        <svg viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`} className="h-auto w-full" style={{ aspectRatio: `${vb.w} / ${vb.h}` }}>
-          <HatchDefs />
-          <rect x={vb.x} y={vb.y} width={vb.w} height={vb.h} fill="#ecece2" />
-          {children}
-        </svg>
+        {drawing}
       </div>
     </div>
   );
@@ -75,7 +81,7 @@ function Truss({ x0, x1, wallH, ridgeH, overhang, eaveH, thick = 10 }: { x0: num
 /* ------------------------------------------------------------------ */
 /* FACADE (depan / belakang)                                           */
 /* ------------------------------------------------------------------ */
-function FacadeElevation({ design, view }: { design: Design; view: 'front' | 'back' }) {
+function FacadeElevation({ design, view, printView = false }: { design: Design; view: 'front' | 'back'; printView?: boolean }) {
   const g = derive(design);
   const d = design;
   const W = g.totalWidth;
@@ -86,10 +92,12 @@ function FacadeElevation({ design, view }: { design: Design; view: 'front' | 'ba
   const dimX = mir ? 0 : W;
   const gap = d.fence.visible ? d.fence.gap : 0;
   const fenceX = M(-gap);
-  const padFence = Math.max(200, gap + 170);
-  const padL = mir ? 230 : padFence;
-  const padR = mir ? padFence + 20 : 230;
-  const vb = { x: -padL, y: Y(g.ridgeH + 110), w: W + padL + padR, h: g.ridgeH + 110 + 120 };
+  const padFence = Math.max(230, gap + 170, d.overhang + 80);
+  const padOther = Math.max(230, d.overhang + 80);
+  const padL = mir ? padOther : padFence;
+  const padR = mir ? padFence + 20 : padOther;
+  const topH = Math.max(g.ridgeH, d.fence.visible ? d.fence.height : 0, d.door.height);
+  const vb = { x: -padL, y: Y(topH + 110), w: W + padL + padR, h: topH + 110 + 140 };
   const faceCols = d.columns.filter((c) => (view === 'front' ? c.z > g.depth - 100 : c.z < 100));
   const mainColor = MATERIAL_COLOR[d.wallMaterial];
   const extColor = MATERIAL_COLOR[d.extension.material];
@@ -100,7 +108,7 @@ function FacadeElevation({ design, view }: { design: Design; view: 'front' | 'ba
   const doorX = R(door.offset, door.width);
 
   return (
-    <Frame title={view === 'front' ? 'TAMPAK DEPAN' : 'TAMPAK BELAKANG'} subtitle={`${d.title}${mir ? ' • (perluasan tampak di kanan)' : ''}`} vb={vb}>
+    <Frame title={view === 'front' ? 'TAMPAK DEPAN' : 'TAMPAK BELAKANG'} subtitle={`${d.title}${mir ? ' • (perluasan tampak di kanan)' : ''}`} vb={vb} printView={printView}>
       <rect x={mainX} y={Y(g.wallH)} width={d.width} height={g.wallH} fill={mainColor} stroke="#202a27" strokeWidth={2} />
       {Array.from({ length: Math.floor(d.width / 90) }, (_, i) => (
         <line key={i} x1={mainX + (i + 1) * 90} y1={Y(g.wallH)} x2={mainX + (i + 1) * 90} y2={0} stroke="#202a27" strokeWidth={0.6} opacity={0.35} />
@@ -209,24 +217,26 @@ function FacadeElevation({ design, view }: { design: Design; view: 'front' | 'ba
   );
 }
 
-export function FrontElevation({ design }: { design: Design }) {
-  return <FacadeElevation design={design} view="front" />;
+export function FrontElevation({ design, printView = false }: { design: Design; printView?: boolean }) {
+  return <FacadeElevation design={design} view="front" printView={printView} />;
 }
-export function BackElevation({ design }: { design: Design }) {
-  return <FacadeElevation design={design} view="back" />;
+export function BackElevation({ design, printView = false }: { design: Design; printView?: boolean }) {
+  return <FacadeElevation design={design} view="back" printView={printView} />;
 }
 
 /* ------------------------------------------------------------------ */
 /* SIDE (kiri / kanan)                                                 */
 /* ------------------------------------------------------------------ */
-function SideElevation({ design, view }: { design: Design; view: 'left' | 'right' }) {
+function SideElevation({ design, view, printView = false }: { design: Design; view: 'left' | 'right'; printView?: boolean }) {
   const g = derive(design);
   const d = design;
   const D = g.depth;
   const mir = view === 'right'; // dari kanan: depan tampak di kiri gambar
   const M = (z: number) => (mir ? D - z : z);
   const R = (z: number, w: number) => (mir ? D - z - w : z);
-  const vb = { x: -200, y: Y(g.ridgeH + 90), w: D + 420, h: g.ridgeH + 90 + 110 };
+  const pad = Math.max(220, d.overhang + 90);
+  const topH = Math.max(g.ridgeH, d.fence.visible ? d.fence.height : 0, d.door.height);
+  const vb = { x: -pad, y: Y(topH + 90), w: D + pad * 2, h: topH + 90 + 140 };
   const isExtSide = view === 'left' && d.extension.enabled;
   const wallH = isExtSide && g.canopy ? g.canopy.wallH : g.wallH;
   const color = isExtSide ? MATERIAL_COLOR[d.extension.material] : MATERIAL_COLOR[d.wallMaterial];
@@ -241,6 +251,7 @@ function SideElevation({ design, view }: { design: Design; view: 'left' | 'right
       title={view === 'left' ? 'TAMPAK SAMPING KIRI (sisi pagar)' : 'TAMPAK SAMPING KANAN'}
       subtitle={mir ? 'kiri = depan, kanan = belakang' : 'kiri = belakang, kanan = depan'}
       vb={vb}
+      printView={printView}
     >
       {!isExtSide && (
         <>
@@ -291,6 +302,8 @@ function SideElevation({ design, view }: { design: Design; view: 'left' | 'right
         </g>
       )}
       <Ground x0={vb.x + 20} x1={vb.x + vb.w - 20} />
+      {hasDoor && <HDim xa={R(door.offset, door.width)} xb={R(door.offset, door.width) + door.width} y={0} offset={20} label={`${door.width}`} fontSize={fs - 4} color="#8a4b1f" />}
+      {hasDoor && <Dim x1={R(door.offset, door.width) + door.width} y1={0} x2={R(door.offset, door.width) + door.width} y2={Y(door.height)} offset={25} label={`${door.height}`} fontSize={fs - 4} color="#8a4b1f" />}
       <HDim xa={0} xb={D} y={0} offset={60} label={`${D} cm`} fontSize={fs} />
       <HDim xa={roofX} xb={roofX + (g.roofZ1 - g.roofZ0)} y={0} offset={95} label={`${g.roofZ1 - g.roofZ0} (atap + tritisan)`} fontSize={fs - 4} color="#5d6a61" />
       <Dim x1={D} y1={0} x2={D} y2={Y(wallH)} offset={70} label={`${Math.round(wallH)}`} fontSize={fs - 2} />
@@ -309,11 +322,11 @@ function SideElevation({ design, view }: { design: Design; view: 'left' | 'right
   );
 }
 
-export function LeftElevation({ design }: { design: Design }) {
-  return <SideElevation design={design} view="left" />;
+export function LeftElevation({ design, printView = false }: { design: Design; printView?: boolean }) {
+  return <SideElevation design={design} view="left" printView={printView} />;
 }
-export function RightElevation({ design }: { design: Design }) {
-  return <SideElevation design={design} view="right" />;
+export function RightElevation({ design, printView = false }: { design: Design; printView?: boolean }) {
+  return <SideElevation design={design} view="right" printView={printView} />;
 }
 
 /* ------------------------------------------------------------------ */

@@ -199,18 +199,19 @@
 }
 
 /* The drawing sheet is kept separate from the interactive application. */
-.print-sheet { display: none; }
+.print-document { display: none; }
 
 @page { size: A4 landscape; margin: 10mm; }
 
 @media print {
   html, body, #root { margin: 0 !important; padding: 0 !important; background: #fff !important; }
   .app-shell { display: none !important; }
+  .print-document { display: block; }
   .print-sheet {
     display: flex;
     flex-direction: column;
     width: 277mm;
-    height: 190mm;
+    height: 189mm;
     overflow: hidden;
     color: #111;
     background: white;
@@ -218,7 +219,10 @@
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
     box-sizing: border-box;
+    break-after: page;
+    page-break-after: always;
   }
+  .print-sheet:last-child { break-after: auto; page-break-after: auto; }
   .print-sheet *, .print-sheet *::before, .print-sheet *::after { box-sizing: border-box; }
   .print-sheet-header {
     height: 17mm;

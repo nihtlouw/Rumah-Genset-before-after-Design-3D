@@ -198,37 +198,55 @@
   }
 }
 
+/* The drawing sheet is kept separate from the interactive application. */
+.print-sheet { display: none; }
+
+@page { size: A4 landscape; margin: 10mm; }
+
 @media print {
-  .no-print {
-    display: none !important;
-  }
-  * {
+  html, body, #root { margin: 0 !important; padding: 0 !important; background: #fff !important; }
+  .app-shell { display: none !important; }
+  .print-sheet {
+    display: flex;
+    flex-direction: column;
+    width: 277mm;
+    height: 190mm;
+    overflow: hidden;
+    color: #111;
+    background: white;
+    font: 9pt/1.35 Arial, sans-serif;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+    box-sizing: border-box;
   }
-  html,
-  body,
-  .app-shell {
-    background: #070c0d !important;
+  .print-sheet *, .print-sheet *::before, .print-sheet *::after { box-sizing: border-box; }
+  .print-sheet-header {
+    height: 17mm;
+    flex: none;
+    border-bottom: 0.5mm solid #222;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
-  body {
-    overflow: visible;
-  }
-  .app-shell::before {
-    display: none;
-  }
-  header {
-    position: static !important;
-  }
-  .section-anchor {
-    scroll-margin-top: 0;
-  }
-  section {
-    break-inside: avoid;
-    padding-top: 14px !important;
-    padding-bottom: 14px !important;
-  }
-  .xl\:sticky {
-    position: static !important;
-  }
+  .print-sheet-header h1 { margin: 0; font-size: 15pt; line-height: 1.1; font-weight: 700; }
+  .print-eyebrow { font-size: 7pt; letter-spacing: .08em; font-weight: 700; }
+  .print-sheet-number { text-align: right; font-size: 16pt; font-weight: 700; }
+  .print-sheet-number small { display: block; font-size: 7pt; }
+  .print-sheet-body { display: flex; flex: 1; min-height: 0; padding: 2mm 0; }
+  .print-drawing { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; }
+  .print-drawing svg { display: block; width: 100%; height: 100%; max-height: 100%; }
+  /* Dimensions and labels must stay legible on monochrome printers as well. */
+  .print-drawing svg text { fill: #111 !important; }
+  .print-drawing .dim line { stroke: #333 !important; opacity: 1; }
+  .print-drawing .dim circle { fill: #333 !important; }
+  .print-notes { width: 66mm; flex: none; border-left: 0.3mm solid #222; padding: 1mm 0 0 4mm; font-size: 8.5pt; }
+  .print-notes h2 { font-size: 9pt; margin: 0 0 1.5mm; padding-bottom: 1mm; border-bottom: 0.2mm solid #888; font-weight: 700; }
+  .print-notes h2:not(:first-child) { margin-top: 4mm; }
+  .print-notes dl { margin: 0; }
+  .print-notes dl div { display: flex; justify-content: space-between; gap: 2mm; }
+  .print-notes dd { margin: 0; font-weight: 700; text-align: right; }
+  .print-notes ul { padding-left: 4mm; margin: 0; }
+  .print-notes li { margin: 0 0 1mm; }
+  .print-notes p { margin: 0 0 2mm; }
+  .print-sheet-footer { height: 7mm; flex: none; border-top: 0.4mm solid #222; display: flex; align-items: center; justify-content: space-between; font-size: 8pt; font-weight: 700; }
 }

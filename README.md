@@ -102,3 +102,14 @@ Workflow: [`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.
 
 Karena `vite-plugin-singlefile` dipakai, hasil build berupa satu file HTML sehingga tidak ada
 masalah path aset di subfolder GitHub Pages.
+
+### Cetak denah / PDF
+
+Pilih skenario **Before** atau **After**, lalu tekan **Cetak denah / PDF**. Hasilnya
+hanya denah skenario aktif pada satu lembar A4 landscape, termasuk dimensi dan
+keterangan pembacaan. Mode banding tidak mencetak dua denah sekaligus; pilih dan
+cetak masing-masing skenario secara terpisah. Di dialog cetak pilih **A4**,
+**landscape**, dan **Save as PDF / Simpan sebagai PDF** jika ingin menyimpan file;
+matikan header dan footer browser bila diperlukan. Denah menyesuaikan ukuran
+halaman dan **tidak memiliki skala numerik**: gunakan angka dimensi, bukan penggaris.
+Gambar ini adalah konsep dan harus diverifikasi di lapangan sebelum pelaksanaan.

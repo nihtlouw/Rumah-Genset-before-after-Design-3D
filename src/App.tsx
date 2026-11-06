@@ -17,6 +17,7 @@ import {
 import Header from './components/Header';
 import { HeroAxon } from './components/HeroAxon';
 import { FloorPlan } from './components/plan/FloorPlan';
+import { PrintPlan } from './components/plan/PrintPlan';
 import { BackElevation, CrossSection, FrontElevation, LeftElevation, RightElevation } from './components/plan/Elevations';
 import { Viewer3D, type PovRequest } from './components/three/Viewer3D';
 import { Editor } from './components/Editor';
@@ -250,6 +251,7 @@ export default function App() {
   }, [api]);
 
   return (
+    <>
     <div className="app-shell relative min-h-screen overflow-x-hidden bg-ink text-[#edf2ea]">
       <div className="relative z-[1]">
         <Header mode={mode} onMode={setMode} api={api} />
@@ -412,7 +414,7 @@ export default function App() {
                     Bandingkan
                   </GhostButton>
                   <GhostButton onClick={() => window.print()} icon={<Printer size={11} />}>
-                    Cetak
+                    Cetak denah {mode === 'before' ? 'Before' : 'After'} / PDF
                   </GhostButton>
                 </>
               }
@@ -876,7 +878,7 @@ export default function App() {
                     Unduh data
                   </GhostButton>
                   <GhostButton onClick={() => window.print()} icon={<Printer size={11} />}>
-                    Cetak
+                    Cetak denah {mode === 'before' ? 'Before' : 'After'} / PDF
                   </GhostButton>
                 </>
               }
@@ -1020,6 +1022,8 @@ export default function App() {
         <ActionToast action={api.lastAction} />
       </div>
     </div>
+    <PrintPlan design={design} mode={mode} />
+    </>
   );
 }
 

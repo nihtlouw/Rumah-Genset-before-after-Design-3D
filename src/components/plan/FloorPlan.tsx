@@ -10,6 +10,7 @@ interface Props {
   onSelect?: (id: string | null) => void;
   showDetailDims?: boolean;
   compact?: boolean;
+  printView?: boolean;
 }
 
 type DragState =
@@ -24,6 +25,7 @@ export function FloorPlan({
   onSelect,
   showDetailDims = true,
   compact = false,
+  printView = false,
 }: Props) {
   const g = derive(design);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -31,10 +33,12 @@ export function FloorPlan({
   const editable = !!onChange;
 
   const fenceX = design.fence.visible ? -design.fence.gap : 0;
-  const padL = Math.max(260, -fenceX + 200);
-  const padR = 230;
-  const padT = 190;
-  const padB = compact ? 170 : 260;
+  // Keep door swings inside the drawing even when the door is moved to another wall.
+  const doorReach = design.door.width + 35;
+  const padL = Math.max(260, -fenceX + 200, design.door.wall === 'left' ? doorReach : 0);
+  const padR = Math.max(230, design.door.wall === 'right' ? doorReach : 0);
+  const padT = Math.max(190, design.door.wall === 'back' ? doorReach : 0);
+  const padB = Math.max(compact ? 190 : 260, design.door.wall === 'front' ? doorReach : 0);
   const vb = {
     x: -padL,
     y: -padT,
@@ -140,11 +144,11 @@ export function FloorPlan({
     >
       <HatchDefs />
       {/* kertas gambar */}
-      <rect x={vb.x} y={vb.y} width={vb.w} height={vb.h} fill="#ecece2" />
-      <rect x={vb.x} y={vb.y} width={vb.w} height={vb.h} fill="url(#grid50)" />
+      <rect x={vb.x} y={vb.y} width={vb.w} height={vb.h} fill={printView ? "#fff" : "#ecece2"} />
+      {!printView && <rect x={vb.x} y={vb.y} width={vb.w} height={vb.h} fill="url(#grid50)" />}
 
       {/* site context: taman & gedung */}
-      <rect x={vb.x} y={vb.y} width={padL + fenceX} height={vb.h} fill="#e8eddd" opacity={0.6} />
+      <rect x={vb.x} y={vb.y} width={padL + fenceX} height={vb.h} fill={printView ? "#fff" : "#e8eddd"} opacity={0.6} />
       <text x={vb.x + 20} y={g.depth / 2} fontSize={fs} fill="#4f7444" transform={`rotate(-90 ${vb.x + 20} ${g.depth / 2})`} textAnchor="middle" fontWeight={600}>
         TAMAN / AREA LUAR
       </text>
@@ -458,7 +462,7 @@ export function FloorPlan({
 
       {/* orientation labels */}
       <text x={g.totalWidth / 2} y={-150} fontSize={fs - 2} fill="#778074" textAnchor="middle" letterSpacing={3}>SISI BELAKANG</text>
-      <text x={g.totalWidth / 2} y={g.depth + 165} fontSize={fs - 2} fill="#778074" textAnchor="middle" letterSpacing={3}>SISI DEPAN (AKSES PINTU)</text>
+      <text x={g.totalWidth / 2} y={g.depth + 165} fontSize={fs - 2} fill="#778074" textAnchor="middle" letterSpacing={3}>SISI DEPAN</text>
       <text x={g.totalWidth + 170} y={g.depth / 2} fontSize={fs - 2} fill="#778074" textAnchor="middle" letterSpacing={3} transform={`rotate(90 ${g.totalWidth + 170} ${g.depth / 2})`}>SISI KANAN</text>
 
       {/* north arrow */}
@@ -486,7 +490,7 @@ export function FloorPlan({
             <rect x={300} y={0} width={22} height={14} fill="#e7e6c6" />
             <text x={328} y={12}>Area perluasan</text>
             <rect x={0} y={22} width={22} height={14} fill="url(#concrete)" stroke="#fff" strokeWidth={0.8} />
-            <text x={28} y={34}>Pondasi genset 30 cm</text>
+            <text x={28} y={34}>Pondasi genset</text>
             <line x1={130} y1={29} x2={152} y2={29} stroke="#778074" strokeWidth={2} strokeDasharray="4 3" />
             <text x={158} y={34}>Jarak bebas / dim bantu</text>
           </g>
